@@ -19,7 +19,7 @@
 
 <p align="center">
   <a href="https://github.com/tn3w/stem-rs/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/tn3w/stem-rs/ci.yml?style=for-the-badge&logo=github&logoColor=white&label=CI" alt="CI">
+    <img src="https://img.shields.io/github/actions/workflow/status/tn3w/stem-rs/tests.yml?style=for-the-badge&logo=github&logoColor=white&label=CI" alt="CI">
   </a>
   <a href="https://codecov.io/gh/tn3w/stem-rs">
     <img src="https://img.shields.io/codecov/c/github/tn3w/stem-rs?style=for-the-badge&logo=codecov&logoColor=white" alt="Coverage">
