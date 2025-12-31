@@ -36,8 +36,6 @@ jobs:
           mkdir -p docs/docs
           cp -r target/doc/* docs/docs/
           
-          echo "stem.tn3w.dev" > docs/CNAME
-          
           cp docs-src/styles/rustdoc-dark.css docs/docs/rustdoc-dark.css
           
           for file in $(find docs/docs -name "*.html"); do
