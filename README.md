@@ -36,8 +36,6 @@
   <a href="#-examples">💡 Examples</a>
 </p>
 
----
-
 ## Overview
 
 **stem-rs** is a Rust implementation of [Stem](https://stem.torproject.org/), the Python library for interacting with Tor's control protocol. It provides idiomatic, type-safe Rust APIs while maintaining complete functional parity with Python Stem.
@@ -62,8 +60,6 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 ```
-
----
 
 ## ✨ Features
 
@@ -155,8 +151,6 @@ Parse and evaluate relay exit policies.
 </tr>
 </table>
 
----
-
 ## 🚀 Quick Start
 
 Add stem-rs to your `Cargo.toml`:
@@ -194,8 +188,6 @@ Generate a hashed password:
 ```bash
 tor --hash-password "your-password"
 ```
-
----
 
 ## 💡 Examples
 
@@ -412,8 +404,6 @@ if version >= min_version {
 }
 ```
 
----
-
 ## 📦 Module Reference
 
 | Module                                                           | Description                                                       |
@@ -429,8 +419,6 @@ if version >= min_version {
 | [`interpreter`](https://stem.tn3w.dev/docs/stem_rs/interpreter/) | Interactive Tor control interpreter                               |
 | [`util`](https://stem.tn3w.dev/docs/stem_rs/util/)               | Validation utilities (fingerprints, nicknames, etc.)              |
 
----
-
 ## 🔒 Security
 
 stem-rs is designed with security as a priority:
@@ -441,8 +429,6 @@ stem-rs is designed with security as a priority:
 - **Input validation** — Prevents protocol injection attacks
 - **Signature verification** — Optional cryptographic validation for descriptors
 
----
-
 ## ⚡ Performance
 
 - **Async-first** — Built on Tokio for high-performance async I/O
@@ -450,15 +436,11 @@ stem-rs is designed with security as a priority:
 - **Event streaming** — Non-blocking real-time event handling
 - **Connection pooling** — Efficient socket management
 
----
-
 ## 🛠️ Requirements
 
 - **Rust** 1.70+
 - **Tokio** runtime
 - **Tor** instance with control port enabled
-
----
 
 ## 🧪 Testing
 
@@ -472,8 +454,6 @@ cargo test --features integration
 # Run extensive tests
 cargo test --features extensive
 ```
-
----
 
 ## 📊 Comparison with Python Stem
 
@@ -492,15 +472,11 @@ stem-rs maintains functional parity with Python Stem while providing Rust's safe
 | Async/Await            | ❌          | ✅      |
 | Zero-cost Abstractions | ❌          | ✅      |
 
----
-
 ## 📄 License
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
----
 
 ## 🤝 Contributing
 
@@ -512,8 +488,6 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
----
-
 ## 🔗 Links
 
 <p align="center">
@@ -523,8 +497,6 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
   <a href="https://github.com/tn3w/stem-rs">GitHub</a> •
   <a href="https://stem.torproject.org/">Python Stem</a>
 </p>
-
----
 
 <p align="center">
   <sub>Built with 🦀 by the stem-rs contributors</sub>
