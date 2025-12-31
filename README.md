@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/docsrs/stem-rs?style=for-the-badge&logo=docs.rs&logoColor=white" alt="docs.rs">
   </a>
   <a href="https://github.com/tn3w/stem-rs/blob/master/LICENSE">
-    <img src="https://img.shields.io/crates/l/stem-rs?style=for-the-badge" alt="License">
+    <img src="https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge" alt="License">
   </a>
 </p>
 
