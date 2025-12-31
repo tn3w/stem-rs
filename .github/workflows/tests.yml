@@ -105,7 +105,7 @@ jobs:
             sleep 1
           done
           
-          for i in {1..120}; do
+          for i in {1..360}; do
             if grep -q "Bootstrapped 100%" tor-bundle/tor/tor.log 2>/dev/null; then
               echo "Tor bootstrapped successfully after ${i} seconds"
               break
