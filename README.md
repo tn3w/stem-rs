@@ -339,15 +339,19 @@ ctrl.signal(Signal::Shutdown).await?;
 ### Hidden Services
 
 ```rust
-use std::net::SocketAddr;
+// Create ephemeral hidden service (v3 onion)
+let response = ctrl.create_ephemeral_hidden_service(
+    &[(80, "127.0.0.1:8080")],  // Map port 80 to local 8080
+    "NEW",                       // Generate new key
+    "ED25519-V3",                // Use v3 onion (recommended)
+    &[],                         // No special flags
+).await?;
 
-// Create ephemeral hidden service
-let ports = vec![(80, "127.0.0.1:8080".parse::<SocketAddr>()?)];
-let onion_address = ctrl.create_ephemeral_hidden_service(&ports).await?;
-println!("Hidden service: {}.onion", onion_address);
+println!("Hidden service: {}.onion", response.service_id);
+println!("Private key: {:?}", response.private_key);
 
 // Remove hidden service
-ctrl.remove_ephemeral_hidden_service(&onion_address).await?;
+ctrl.remove_ephemeral_hidden_service(&response.service_id).await?;
 ```
 
 ### Descriptor Parsing
