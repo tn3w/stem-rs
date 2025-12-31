@@ -42,6 +42,10 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.changed == 'true'
     uses: ./.github/workflows/docs.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
 
   publish:
     name: Publish to crates.io
