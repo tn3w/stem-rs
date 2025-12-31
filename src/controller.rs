@@ -1806,6 +1806,163 @@ impl Controller {
 
         Ok(response.raw_content())
     }
+
+    /// Creates an ephemeral hidden service.
+    ///
+    /// Unlike file-based hidden services, ephemeral services don't touch disk
+    /// and are the recommended way to create hidden services programmatically.
+    ///
+    /// # Arguments
+    ///
+    /// * `ports` - Mapping of virtual ports to local targets (e.g., `[(80, "127.0.0.1:8080")]`)
+    /// * `key_type` - Type of key: `"NEW"` to generate, `"RSA1024"`, or `"ED25519-V3"`
+    /// * `key_content` - Key content or type to generate (`"BEST"`, `"RSA1024"`, `"ED25519-V3"`)
+    /// * `flags` - Optional flags like `"Detach"`, `"DiscardPK"`, `"BasicAuth"`, `"MaxStreamsCloseCircuit"`
+    ///
+    /// # Returns
+    ///
+    /// Returns an [`AddOnionResponse`] containing:
+    /// - `service_id`: The onion address (without `.onion` suffix)
+    /// - `private_key`: The private key (unless `DiscardPK` flag was set)
+    /// - `private_key_type`: The key type (e.g., `"ED25519-V3"`)
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// // Create a v3 hidden service mapping port 80 to local port 8080
+    /// let response = controller.create_ephemeral_hidden_service(
+    ///     &[(80, "127.0.0.1:8080")],
+    ///     "NEW",
+    ///     "ED25519-V3",
+    ///     &[],
+    /// ).await?;
+    ///
+    /// println!("Hidden service: {}.onion", response.service_id);
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`remove_ephemeral_hidden_service`](Self::remove_ephemeral_hidden_service): Remove the service
+    pub async fn create_ephemeral_hidden_service(
+        &mut self,
+        ports: &[(u16, &str)],
+        key_type: &str,
+        key_content: &str,
+        flags: &[&str],
+    ) -> Result<AddOnionResponse, Error> {
+        let mut request = format!("ADD_ONION {}:{}", key_type, key_content);
+
+        if !flags.is_empty() {
+            request.push_str(&format!(" Flags={}", flags.join(",")));
+        }
+
+        for (virt_port, target) in ports {
+            request.push_str(&format!(" Port={},{}", virt_port, target));
+        }
+
+        let response = self.msg(&request).await?;
+        parse_add_onion_response(&response)
+    }
+
+    /// Removes an ephemeral hidden service.
+    ///
+    /// Discontinues a hidden service that was created with
+    /// [`create_ephemeral_hidden_service`](Self::create_ephemeral_hidden_service).
+    ///
+    /// # Arguments
+    ///
+    /// * `service_id` - The onion address without the `.onion` suffix
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the service was removed, `false` if it wasn't running.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// // Create and then remove a hidden service
+    /// let response = controller.create_ephemeral_hidden_service(
+    ///     &[(80, "127.0.0.1:8080")],
+    ///     "NEW",
+    ///     "BEST",
+    ///     &[],
+    /// ).await?;
+    ///
+    /// controller.remove_ephemeral_hidden_service(&response.service_id).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn remove_ephemeral_hidden_service(&mut self, service_id: &str) -> Result<bool, Error> {
+        let command = format!("DEL_ONION {}", service_id);
+        match self.msg(&command).await {
+            Ok(_) => Ok(true),
+            Err(Error::OperationFailed { code, message }) => {
+                if message.contains("Unknown Onion Service") {
+                    Ok(false)
+                } else {
+                    Err(Error::OperationFailed { code, message })
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
+/// Response from ADD_ONION command.
+///
+/// Contains the service ID and optionally the private key for the hidden service.
+#[derive(Debug, Clone)]
+pub struct AddOnionResponse {
+    /// The onion address without the `.onion` suffix.
+    pub service_id: String,
+    /// The private key (base64 encoded), if not discarded.
+    pub private_key: Option<String>,
+    /// The type of private key (e.g., `"ED25519-V3"`, `"RSA1024"`).
+    pub private_key_type: Option<String>,
+}
+
+/// Parses the response from an ADD_ONION command.
+fn parse_add_onion_response(content: &str) -> Result<AddOnionResponse, Error> {
+    let mut service_id = None;
+    let mut private_key = None;
+    let mut private_key_type = None;
+
+    for line in content.lines() {
+        let line = line.trim();
+        if let Some(value) = line.strip_prefix("ServiceID=") {
+            service_id = Some(value.to_string());
+        } else if let Some(value) = line.strip_prefix("PrivateKey=") {
+            if let Some((key_type, key_content)) = value.split_once(':') {
+                private_key_type = Some(key_type.to_string());
+                private_key = Some(key_content.to_string());
+            }
+        }
+    }
+
+    let service_id = service_id.ok_or_else(|| Error::Parse {
+        location: "ADD_ONION response".to_string(),
+        reason: "missing ServiceID".to_string(),
+    })?;
+
+    Ok(AddOnionResponse {
+        service_id,
+        private_key,
+        private_key_type,
+    })
 }
 
 /// Parses circuit status output from GETINFO circuit-status.
@@ -2385,5 +2542,30 @@ mod stem_tests {
         assert_eq!(streams[0].circuit_id, Some(CircuitId::new("7")));
         assert_eq!(streams[0].target_host, "www.torproject.org");
         assert_eq!(streams[0].target_port, 443);
+    }
+
+    #[test]
+    fn test_parse_add_onion_response_v3() {
+        let content = "ServiceID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nPrivateKey=ED25519-V3:base64keydata==";
+        let response = parse_add_onion_response(content).unwrap();
+        assert_eq!(response.service_id, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        assert_eq!(response.private_key_type, Some("ED25519-V3".to_string()));
+        assert_eq!(response.private_key, Some("base64keydata==".to_string()));
+    }
+
+    #[test]
+    fn test_parse_add_onion_response_discarded_key() {
+        let content = "ServiceID=abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuv";
+        let response = parse_add_onion_response(content).unwrap();
+        assert_eq!(response.service_id, "abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuv");
+        assert!(response.private_key.is_none());
+        assert!(response.private_key_type.is_none());
+    }
+
+    #[test]
+    fn test_parse_add_onion_response_missing_service_id() {
+        let content = "PrivateKey=ED25519-V3:base64keydata==";
+        let result = parse_add_onion_response(content);
+        assert!(result.is_err());
     }
 }
