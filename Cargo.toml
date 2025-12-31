@@ -2,7 +2,6 @@
 name = "stem-rs"
 version = "1.0.0"
 edition = "2021"
-rust-version = "1.70"
 description = "A complete Rust library for Tor control protocol — build privacy-focused applications with type-safe, async-first APIs"
 license = "MPL-2.0"
 authors = ["tn3w <tn3w@protonmail.com>"]
