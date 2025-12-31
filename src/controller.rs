@@ -1868,8 +1868,17 @@ impl Controller {
             request.push_str(&format!(" Port={},{}", virt_port, target));
         }
 
-        let response = self.msg(&request).await?;
-        parse_add_onion_response(&response)
+        self.socket.send(&request).await?;
+        let response = self.recv_response().await?;
+
+        if !response.is_ok() {
+            return Err(Error::OperationFailed {
+                code: response.status_code.to_string(),
+                message: response.content().to_string(),
+            });
+        }
+
+        parse_add_onion_response(&response.all_content())
     }
 
     /// Removes an ephemeral hidden service.
