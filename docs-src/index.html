@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="stem-rs is a Rust implementation of Stem for Tor control protocol interaction. Connect to Tor, authenticate, query information, and handle events with idiomatic Rust APIs."
+        />
+        <meta
+            name="keywords"
+            content="stem-rs, Tor, Rust, control protocol, privacy, anonymity, networking, stem"
+        />
+
+        <meta property="og:title" content="stem-rs - Rust Tor Control Protocol Library" />
+        <meta
+            property="og:description"
+            content="A Rust implementation of Stem for Tor control protocol interaction. Idiomatic APIs for control socket communication, authentication, descriptor parsing, and event handling."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://stem.tn3w.dev/" />
+
+        <title>stem-rs - Rust Tor Control Protocol Library</title>
+
+        <link rel="stylesheet" href="styles/theme.css" />
+        <link rel="stylesheet" href="styles/main.css" />
+    </head>
+    <body>
+        <header>
+            <nav class="container">
+                <a href="/" class="nav-logo">stem-rs</a>
+                <div class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#examples">Examples</a>
+                    <a href="docs/stem_rs/">API Docs</a>
+                    <a
+                        href="https://github.com/tn3w/stem-rs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                </div>
+            </nav>
+        </header>
+
+        <main>
+            <section id="hero">
+                <div class="container">
+                    <div class="hero-content">
+                        <div class="hero-badge">
+                            <span>🦀</span>
+                            <span>Built with Rust</span>
+                        </div>
+                        <h1 class="hero-title">stem-rs</h1>
+                        <p class="hero-tagline">
+                            The complete Rust library for Tor control protocol. Build
+                            privacy-focused applications with type-safe, async-first APIs.
+                        </p>
+                        <div class="hero-install">
+                            <span class="hero-install-prompt">$</span>
+                            <code>cargo add stem-rs</code>
+                        </div>
+                        <div class="hero-buttons">
+                            <a href="docs/stem_rs/" class="btn btn-primary">
+                                <span>📚</span>
+                                <span>Documentation</span>
+                            </a>
+                            <a
+                                href="https://github.com/tn3w/stem-rs"
+                                class="btn btn-secondary"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <span>⭐</span>
+                                <span>GitHub</span>
+                            </a>
+                            <a
+                                href="https://crates.io/crates/stem-rs"
+                                class="btn btn-secondary"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <span>📦</span>
+                                <span>crates.io</span>
+                            </a>
+                        </div>
+                        <div class="hero-stats">
+                            <div class="stat">
+                                <div class="stat-value">100%</div>
+                                <div class="stat-label">Safe Rust</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">Async</div>
+                                <div class="stat-label">Tokio Runtime</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">Full</div>
+                                <div class="stat-label">Stem Parity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="features">
+                <div class="container">
+                    <div class="section-header">
+                        <div class="section-label">Capabilities</div>
+                        <h2 class="section-title">Everything you need</h2>
+                        <p class="section-subtitle">
+                            A complete toolkit for building Tor-integrated applications with
+                            idiomatic Rust patterns.
+                        </p>
+                    </div>
+                    <div class="features-grid">
+                        <a href="docs/stem_rs/socket/" class="feature-card">
+                            <div class="feature-icon">🔌</div>
+                            <h3>Control Socket</h3>
+                            <p>
+                                Connect to Tor via TCP or Unix domain sockets. Async-first design
+                                with full tokio integration for high-performance applications.
+                            </p>
+                            <div class="feature-list">
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/socket/struct.ControlSocket.html"
+                                    >TCP</span
+                                >
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/socket/struct.ControlSocket.html"
+                                    >Unix Socket</span
+                                >
+                                <span class="feature-tag" data-href="docs/stem_rs/socket/"
+                                    >Async I/O</span
+                                >
+                            </div>
+                        </a>
+                        <a href="docs/stem_rs/auth/" class="feature-card">
+                            <div class="feature-icon">🔐</div>
+                            <h3>Authentication</h3>
+                            <p>
+                                All authentication methods with automatic detection. Secure handling
+                                of credentials with constant-time comparison.
+                            </p>
+                            <div class="feature-list">
+                                <span class="feature-tag" data-href="docs/stem_rs/auth/"
+                                    >SAFECOOKIE</span
+                                >
+                                <span class="feature-tag" data-href="docs/stem_rs/auth/"
+                                    >COOKIE</span
+                                >
+                                <span class="feature-tag" data-href="docs/stem_rs/auth/"
+                                    >PASSWORD</span
+                                >
+                            </div>
+                        </a>
+                        <a href="docs/stem_rs/controller/" class="feature-card">
+                            <div class="feature-icon">🎛️</div>
+                            <h3>Controller API</h3>
+                            <p>
+                                High-level interface for Tor interaction. Query configuration, send
+                                signals, manage circuits, and control hidden services.
+                            </p>
+                            <div class="feature-list">
+                                <span class="feature-tag" data-href="docs/stem_rs/enum.Signal.html"
+                                    >Signals</span
+                                >
+                                <span class="feature-tag" data-href="docs/stem_rs/controller/"
+                                    >Circuits</span
+                                >
+                                <span class="feature-tag" data-href="docs/stem_rs/controller/"
+                                    >Config</span
+                                >
+                            </div>
+                        </a>
+                        <a href="docs/stem_rs/descriptor/" class="feature-card">
+                            <div class="feature-icon">📄</div>
+                            <h3>Descriptor Parsing</h3>
+                            <p>
+                                Complete parsing for all Tor descriptor types. Server, micro,
+                                consensus, extra-info, and hidden service descriptors.
+                            </p>
+                            <div class="feature-list">
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/descriptor/server/"
+                                    >Server</span
+                                >
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/descriptor/consensus/"
+                                    >Consensus</span
+                                >
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/descriptor/hidden/"
+                                    >Hidden Service</span
+                                >
+                            </div>
+                        </a>
+                        <a href="docs/stem_rs/events/" class="feature-card">
+                            <div class="feature-icon">📡</div>
+                            <h3>Event Handling</h3>
+                            <p>
+                                Subscribe to real-time Tor events. Monitor bandwidth, circuit
+                                status, stream events, and log messages as they happen.
+                            </p>
+                            <div class="feature-list">
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/enum.EventType.html"
+                                    >Bandwidth</span
+                                >
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/enum.EventType.html"
+                                    >Circuits</span
+                                >
+                                <span
+                                    class="feature-tag"
+                                    data-href="docs/stem_rs/enum.EventType.html"
+                                    >Streams</span
+                                >
+                            </div>
+                        </a>
+                        <a href="docs/stem_rs/exit_policy/" class="feature-card">
+                            <div class="feature-icon">🚪</div>
+                            <h3>Exit Policy</h3>
+                            <p>
+                                Parse and evaluate exit policies. Determine what traffic a relay
+                                allows and make informed routing decisions.
+                            </p>
+                            <div class="feature-list">
+                                <span class="feature-tag" data-href="docs/stem_rs/exit_policy/"
+                                    >Parse</span
+                                >
+                                <span class="feature-tag" data-href="docs/stem_rs/exit_policy/"
+                                    >Evaluate</span
+                                >
+                                <span class="feature-tag" data-href="docs/stem_rs/exit_policy/"
+                                    >Match</span
+                                >
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <section id="examples">
+                <div class="container">
+                    <div class="section-header">
+                        <div class="section-label">Get Started</div>
+                        <h2 class="section-title">Simple, powerful APIs</h2>
+                        <p class="section-subtitle">
+                            Get up and running in minutes with clear, well-documented code examples.
+                        </p>
+                    </div>
+                    <div class="examples-grid">
+                        <div class="example-card">
+                            <div class="example-header">
+                                <div class="example-number">1</div>
+                                <div class="example-info">
+                                    <h3>Connect to Tor</h3>
+                                    <p>Establish connection and authenticate</p>
+                                </div>
+                            </div>
+                            <pre><code class="language-rust"><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -&gt; <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-comment">// Connect to control port</span>
+    <span class="code-keyword">let mut</span> ctrl = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Auto-detect auth method</span>
+    ctrl.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Connected!"</span>);
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                        </div>
+                        <div class="example-card">
+                            <div class="example-header">
+                                <div class="example-number">2</div>
+                                <div class="example-info">
+                                    <h3>Query Information</h3>
+                                    <p>Get version, status, and metrics</p>
+                                </div>
+                            </div>
+                            <pre><code class="language-rust"><span class="code-comment">// Get Tor version</span>
+<span class="code-keyword">let</span> version = ctrl
+    .<span class="code-function">get_version</span>().<span class="code-keyword">await</span>?;
+<span class="code-function">println!</span>(<span class="code-string">"Tor {}"</span>, version);
+
+<span class="code-comment">// Query traffic stats</span>
+<span class="code-keyword">let</span> read = ctrl
+    .<span class="code-function">get_info</span>(<span class="code-string">"traffic/read"</span>)
+    .<span class="code-keyword">await</span>?;
+
+<span class="code-comment">// Get circuit status</span>
+<span class="code-keyword">let</span> circuits = ctrl
+    .<span class="code-function">get_info</span>(<span class="code-string">"circuit-status"</span>)
+    .<span class="code-keyword">await</span>?;</code></pre>
+                        </div>
+                        <div class="example-card">
+                            <div class="example-header">
+                                <div class="example-number">3</div>
+                                <div class="example-info">
+                                    <h3>Event Subscription</h3>
+                                    <p>Real-time bandwidth monitoring</p>
+                                </div>
+                            </div>
+                            <pre><code class="language-rust"><span class="code-keyword">use</span> stem_rs::EventType;
+
+<span class="code-comment">// Subscribe to events</span>
+ctrl.<span class="code-function">set_events</span>(&amp;[
+    EventType::Bw,
+    EventType::Circ,
+]).<span class="code-keyword">await</span>?;
+
+<span class="code-comment">// Process events</span>
+<span class="code-keyword">loop</span> {
+    <span class="code-keyword">let</span> event = ctrl
+        .<span class="code-function">recv_event</span>().<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"{:?}"</span>, event);
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="docs">
+                <div class="container">
+                    <div class="section-header">
+                        <div class="section-label">API Reference</div>
+                        <h2 class="section-title">Explore the modules</h2>
+                        <p class="section-subtitle">
+                            Comprehensive documentation with examples for every module.
+                        </p>
+                    </div>
+                    <div class="docs-grid">
+                        <a href="docs/stem_rs/controller/" class="docs-link">
+                            <span class="docs-link-icon">🎛️</span>
+                            <div class="docs-link-text">
+                                <div class="docs-link-title">Controller</div>
+                                <div class="docs-link-desc">High-level Tor control interface</div>
+                            </div>
+                            <span class="docs-link-arrow">→</span>
+                        </a>
+                        <a href="docs/stem_rs/socket/" class="docs-link">
+                            <span class="docs-link-icon">🔌</span>
+                            <div class="docs-link-text">
+                                <div class="docs-link-title">Socket</div>
+                                <div class="docs-link-desc">Low-level socket communication</div>
+                            </div>
+                            <span class="docs-link-arrow">→</span>
+                        </a>
+                        <a href="docs/stem_rs/descriptor/" class="docs-link">
+                            <span class="docs-link-icon">📄</span>
+                            <div class="docs-link-text">
+                                <div class="docs-link-title">Descriptor</div>
+                                <div class="docs-link-desc">Tor descriptor parsing</div>
+                            </div>
+                            <span class="docs-link-arrow">→</span>
+                        </a>
+                        <a href="docs/stem_rs/events/" class="docs-link">
+                            <span class="docs-link-icon">📡</span>
+                            <div class="docs-link-text">
+                                <div class="docs-link-title">Events</div>
+                                <div class="docs-link-desc">Event types and handling</div>
+                            </div>
+                            <span class="docs-link-arrow">→</span>
+                        </a>
+                        <a href="docs/stem_rs/exit_policy/" class="docs-link">
+                            <span class="docs-link-icon">🚪</span>
+                            <div class="docs-link-text">
+                                <div class="docs-link-title">Exit Policy</div>
+                                <div class="docs-link-desc">Policy parsing and evaluation</div>
+                            </div>
+                            <span class="docs-link-arrow">→</span>
+                        </a>
+                        <a href="docs/stem_rs/version/" class="docs-link">
+                            <span class="docs-link-icon">🏷️</span>
+                            <div class="docs-link-text">
+                                <div class="docs-link-title">Version</div>
+                                <div class="docs-link-desc">Version parsing and comparison</div>
+                            </div>
+                            <span class="docs-link-arrow">→</span>
+                        </a>
+                    </div>
+                    <div class="docs-cta">
+                        <a href="docs/stem_rs/" class="btn btn-primary">
+                            <span>📚</span>
+                            <span>View Full Documentation</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div>
+                        <div class="footer-logo">stem-rs</div>
+                        <p class="footer-copyright">
+                            © 2024 stem-rs contributors. MPL-2.0 License.
+                        </p>
+                    </div>
+                    <div class="footer-links">
+                        <a
+                            href="https://github.com/tn3w/stem-rs"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >GitHub</a
+                        >
+                        <a
+                            href="https://crates.io/crates/stem-rs"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >crates.io</a
+                        >
+                        <a href="docs/stem_rs/">Documentation</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </body>
+</html>
