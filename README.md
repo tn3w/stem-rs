@@ -12,7 +12,7 @@
   <a href="https://stem.tn3w.dev/docs/stem_rs/">
     <img src="https://img.shields.io/docsrs/stem-rs?style=for-the-badge&logo=docs.rs&logoColor=white" alt="docs.rs">
   </a>
-  <a href="https://github.com/tn3w/stem-rs/blob/main/LICENSE">
+  <a href="https://github.com/tn3w/stem-rs/blob/master/LICENSE">
     <img src="https://img.shields.io/crates/l/stem-rs?style=for-the-badge" alt="License">
   </a>
 </p>
