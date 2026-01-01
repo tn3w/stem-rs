@@ -37,6 +37,7 @@ jobs:
           mkdir -p docs/docs
           cp -r target/doc/stem_rs/* docs/docs/
           cp -r target/doc/static.files docs/
+          cp -r target/doc/src docs/
           
           cp docs-src/styles/rustdoc-dark.css docs/docs/rustdoc-dark.css
           
