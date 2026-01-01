@@ -2921,13 +2921,12 @@ fn parse_protocolinfo(content: &str) -> Result<ProtocolInfo, Error> {
     for line in content.lines() {
         let line = line.trim();
 
-        if line.starts_with("PROTOCOLINFO ") {
-            if let Ok(v) = line[13..].trim().parse::<u32>() {
+        if let Some(stripped) = line.strip_prefix("PROTOCOLINFO ") {
+            if let Ok(v) = stripped.trim().parse::<u32>() {
                 protocol_version = v;
             }
-        } else if line.starts_with("AUTH METHODS=") {
+        } else if let Some(rest) = line.strip_prefix("AUTH METHODS=") {
             // Parse: AUTH METHODS=COOKIE,SAFECOOKIE COOKIEFILE="/path/to/cookie"
-            let rest = &line[13..];
 
             // Find METHODS value
             if let Some(space_pos) = rest.find(' ') {
@@ -3027,7 +3026,7 @@ fn parse_interval_end_to_seconds(interval_end: &str, current_time: f64) -> Optio
 /// Helper to calculate day of year (approximate).
 fn day_of_year(month: u32, day: u32) -> u32 {
     let days_before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    if month >= 1 && month <= 12 {
+    if (1..=12).contains(&month) {
         days_before_month[(month - 1) as usize] + day
     } else {
         day
