@@ -68,7 +68,6 @@ jobs:
           mkdir -p docs/dist
           cp dist-cache/* docs/dist/
           
-          # Create latest symlinks
           VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
           COMMIT=$(git rev-parse --short HEAD)
           DATE=$(date +%Y%m%d)
@@ -98,6 +97,11 @@ jobs:
 
       - name: Generate dist directory listing
         run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date +%Y%m%d)
+          LATEST_NAME="stem-rs-${VERSION}-${DATE}-${COMMIT}"
+          
           FILE_ROWS=""
           for file in $(ls -t docs/dist/*.tar.gz docs/dist/*.zip 2>/dev/null | grep -v latest); do
             filename=$(basename "$file")
@@ -110,7 +114,13 @@ jobs:
               icon="📁"
             fi
             
-            FILE_ROWS="${FILE_ROWS}<div class=\"dist-row\"><div class=\"dist-file\"><span class=\"dist-file-icon\">${icon}</span><a href=\"${filename}\" class=\"dist-file-link\">${filename}</a></div><span class=\"dist-size\">${size}</span><span class=\"dist-date\">${date}</span></div>\n"
+            if [[ "$filename" == "${LATEST_NAME}."* ]]; then
+              badge="<span class=\"dist-latest-badge\">latest</span>"
+            else
+              badge=""
+            fi
+            
+            FILE_ROWS="${FILE_ROWS}<div class=\"dist-row\"><div class=\"dist-file\"><span class=\"dist-file-icon\">${icon}</span><a href=\"${filename}\" class=\"dist-file-link\">${filename}</a>${badge}</div><span class=\"dist-size\">${size}</span><span class=\"dist-date\">${date}</span></div>\n"
           done
           
           cp docs-src/dist-template.html docs/dist/index.html
