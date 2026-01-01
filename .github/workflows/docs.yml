@@ -30,6 +30,32 @@ jobs:
         env:
           RUSTDOCFLAGS: "--default-theme=dark"
 
+      - name: Restore cached archives
+        uses: actions/cache/restore@v4
+        with:
+          path: dist-cache
+          key: dist-archives-${{ github.run_id }}
+          restore-keys: |
+            dist-archives-
+
+      - name: Build source archives
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date +%Y%m%d)
+          
+          mkdir -p dist-cache
+          
+          ARCHIVE_NAME="stem-rs-${VERSION}-${DATE}-${COMMIT}"
+          git archive --format=tar.gz --prefix=stem-rs-${VERSION}/ HEAD -o "dist-cache/${ARCHIVE_NAME}.tar.gz"
+          git archive --format=zip --prefix=stem-rs-${VERSION}/ HEAD -o "dist-cache/${ARCHIVE_NAME}.zip"
+
+      - name: Save archives to cache
+        uses: actions/cache/save@v4
+        with:
+          path: dist-cache
+          key: dist-archives-${{ github.run_id }}
+
       - name: Build documentation site
         run: |
           mkdir -p docs
@@ -38,6 +64,19 @@ jobs:
           cp -r target/doc/stem_rs/* docs/docs/
           cp -r target/doc/static.files docs/
           cp -r target/doc/src docs/
+          
+          mkdir -p docs/dist
+          cp dist-cache/* docs/dist/
+          
+          # Create latest symlinks
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date +%Y%m%d)
+          ARCHIVE_NAME="stem-rs-${VERSION}-${DATE}-${COMMIT}"
+          cd docs/dist
+          ln -sf "${ARCHIVE_NAME}.tar.gz" stem-rs-latest.tar.gz
+          ln -sf "${ARCHIVE_NAME}.zip" stem-rs-latest.zip
+          cd ../..
           
           cp docs-src/styles/rustdoc-dark.css docs/docs/rustdoc-dark.css
           
@@ -56,6 +95,26 @@ jobs:
             sed -i "s|href=\"/index.html\"|href=\"/\"|g" "$file"
             sed -i 's|href="[^"]*stem_rs/index\.html"|href="/"|g' "$file"
           done
+
+      - name: Generate dist directory listing
+        run: |
+          FILE_ROWS=""
+          for file in $(ls -t docs/dist/*.tar.gz docs/dist/*.zip 2>/dev/null | grep -v latest); do
+            filename=$(basename "$file")
+            size=$(du -h "$file" | cut -f1)
+            date=$(stat -c %y "$file" | cut -d' ' -f1)
+            
+            if [[ "$filename" == *.tar.gz ]]; then
+              icon="📄"
+            else
+              icon="📁"
+            fi
+            
+            FILE_ROWS="${FILE_ROWS}<div class=\"dist-row\"><div class=\"dist-file\"><span class=\"dist-file-icon\">${icon}</span><a href=\"${filename}\" class=\"dist-file-link\">${filename}</a></div><span class=\"dist-size\">${size}</span><span class=\"dist-date\">${date}</span></div>\n"
+          done
+          
+          cp docs-src/dist-template.html docs/dist/index.html
+          sed -i "s|<!-- FILE_LIST_PLACEHOLDER -->|${FILE_ROWS}|g" docs/dist/index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
