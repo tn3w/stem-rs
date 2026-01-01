@@ -632,6 +632,33 @@ mod tests {
                 assert_eq!(cb.id.0, "11");
                 assert_eq!(cb.read, 272);
                 assert_eq!(cb.written, 817);
+                assert_eq!(cb.delivered_read, None);
+                assert_eq!(cb.delivered_written, None);
+                assert_eq!(cb.overhead_read, None);
+                assert_eq!(cb.overhead_written, None);
+            }
+            _ => panic!("Expected circuit bandwidth event"),
+        }
+    }
+
+    #[test]
+    fn test_parse_circ_bw_event_with_delivered_overhead() {
+        let msg = ControlMessage::from_str(
+            "650 CIRC_BW ID=11 READ=1000 WRITTEN=2000 DELIVERED_READ=800 DELIVERED_WRITTEN=1600 OVERHEAD_READ=200 OVERHEAD_WRITTEN=400",
+            None,
+            true,
+        )
+        .unwrap();
+        let event = parse_event(&msg).unwrap();
+        match event {
+            ParsedEvent::CircuitBandwidth(cb) => {
+                assert_eq!(cb.id.0, "11");
+                assert_eq!(cb.read, 1000);
+                assert_eq!(cb.written, 2000);
+                assert_eq!(cb.delivered_read, Some(800));
+                assert_eq!(cb.delivered_written, Some(1600));
+                assert_eq!(cb.overhead_read, Some(200));
+                assert_eq!(cb.overhead_written, Some(400));
             }
             _ => panic!("Expected circuit bandwidth event"),
         }

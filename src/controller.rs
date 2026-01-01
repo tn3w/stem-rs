@@ -111,9 +111,10 @@
 //! - [`events`](crate::events): Event types for subscription
 //! - Python Stem's `Controller` class for equivalent functionality
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::auth;
 use crate::events::ParsedEvent;
@@ -121,6 +122,160 @@ use crate::protocol::ControlLine;
 use crate::socket::{ControlMessage, ControlSocket};
 use crate::version::Version;
 use crate::{CircStatus, Error, EventType, Signal, StreamStatus};
+
+/// Types of listeners that Tor can have.
+///
+/// These correspond to the different types of connections that Tor handles,
+/// each configured via different torrc options.
+///
+/// # Example
+///
+/// ```rust
+/// use stem_rs::controller::ListenerType;
+///
+/// let listener = ListenerType::Socks;
+/// assert_eq!(listener.to_string(), "socks");
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ListenerType {
+    /// Traffic we're relaying as a member of the network (ORPort)
+    Or,
+    /// Mirroring for tor descriptor content (DirPort)
+    Dir,
+    /// Client traffic we're sending over Tor (SocksPort)
+    Socks,
+    /// Transparent proxy handling (TransPort)
+    Trans,
+    /// Forwarding for ipfw NATD connections (NatdPort)
+    Natd,
+    /// DNS lookups for our traffic (DNSPort)
+    Dns,
+    /// Controller applications (ControlPort)
+    Control,
+    /// Pluggable transport for Extended ORPorts (ExtORPort)
+    ExtOr,
+    /// HTTP tunneling proxy (HTTPTunnelPort)
+    HttpTunnel,
+}
+
+impl std::fmt::Display for ListenerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ListenerType::Or => write!(f, "or"),
+            ListenerType::Dir => write!(f, "dir"),
+            ListenerType::Socks => write!(f, "socks"),
+            ListenerType::Trans => write!(f, "trans"),
+            ListenerType::Natd => write!(f, "natd"),
+            ListenerType::Dns => write!(f, "dns"),
+            ListenerType::Control => write!(f, "control"),
+            ListenerType::ExtOr => write!(f, "extor"),
+            ListenerType::HttpTunnel => write!(f, "httptunnel"),
+        }
+    }
+}
+
+/// Purpose for a circuit.
+///
+/// Circuits can be created for different purposes, which affects how Tor
+/// uses them.
+///
+/// # Example
+///
+/// ```rust
+/// use stem_rs::controller::CircuitPurpose;
+///
+/// let purpose = CircuitPurpose::General;
+/// assert_eq!(purpose.to_string(), "general");
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CircuitPurpose {
+    /// General purpose circuit for normal traffic
+    General,
+    /// Circuit created and managed by a controller
+    Controller,
+}
+
+impl std::fmt::Display for CircuitPurpose {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CircuitPurpose::General => write!(f, "general"),
+            CircuitPurpose::Controller => write!(f, "controller"),
+        }
+    }
+}
+
+/// Protocol information returned by PROTOCOLINFO command.
+///
+/// Contains information about the Tor control protocol version,
+/// the Tor version, and available authentication methods.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use stem_rs::controller::Controller;
+///
+/// # async fn example() -> Result<(), stem_rs::Error> {
+/// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+/// let info = controller.get_protocolinfo().await?;
+/// println!("Tor version: {}", info.tor_version);
+/// println!("Auth methods: {:?}", info.auth_methods);
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone)]
+pub struct ProtocolInfo {
+    /// Protocol version (typically 1)
+    pub protocol_version: u32,
+    /// Tor version string
+    pub tor_version: String,
+    /// Available authentication methods
+    pub auth_methods: Vec<String>,
+    /// Path to cookie file (if cookie auth available)
+    pub cookie_file: Option<String>,
+}
+
+/// Accounting statistics for bandwidth limiting.
+///
+/// Contains information about Tor's accounting status when AccountingMax
+/// is set in the torrc. This includes read/write limits and current usage.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use stem_rs::controller::Controller;
+///
+/// # async fn example() -> Result<(), stem_rs::Error> {
+/// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+/// controller.authenticate(None).await?;
+/// let stats = controller.get_accounting_stats().await?;
+/// println!("Status: {}", stats.status);
+/// println!("Read: {} bytes", stats.read_bytes);
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone)]
+pub struct AccountingStats {
+    /// Unix timestamp when this was retrieved
+    pub retrieved: f64,
+    /// Hibernation status: "awake", "soft", or "hard"
+    pub status: String,
+    /// Time when accounting interval ends (ISO format string)
+    pub interval_end: Option<String>,
+    /// Seconds until limits reset
+    pub time_until_reset: u64,
+    /// Bytes read during this interval
+    pub read_bytes: u64,
+    /// Bytes remaining before read limit
+    pub read_bytes_left: u64,
+    /// Read limit in bytes
+    pub read_limit: u64,
+    /// Bytes written during this interval
+    pub written_bytes: u64,
+    /// Bytes remaining before write limit
+    pub write_bytes_left: u64,
+    /// Write limit in bytes
+    pub write_limit: u64,
+}
 
 /// A unique identifier for a Tor circuit.
 ///
@@ -1045,6 +1200,67 @@ impl Controller {
         }
     }
 
+    /// Saves the current configuration to the torrc file.
+    ///
+    /// This persists any configuration changes made via [`set_conf`](Self::set_conf)
+    /// to Tor's configuration file, so they survive restarts.
+    ///
+    /// # Arguments
+    ///
+    /// * `force` - If `true`, overwrite the configuration even if it includes
+    ///   a `%include` clause. This is ignored if Tor doesn't support it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::OperationFailed`] if:
+    /// - Tor is unable to save the configuration file (e.g., permission denied)
+    /// - The configuration file contains `%include` and `force` is `false`
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// // Change a configuration option
+    /// controller.set_conf("BandwidthRate", "1 MB").await?;
+    ///
+    /// // Save to torrc
+    /// controller.save_conf(false).await?;
+    ///
+    /// // Force save even with %include
+    /// controller.save_conf(true).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`set_conf`](Self::set_conf): Set a configuration option
+    /// - [`get_conf`](Self::get_conf): Get current configuration
+    pub async fn save_conf(&mut self, force: bool) -> Result<(), Error> {
+        let command = if force { "SAVECONF FORCE" } else { "SAVECONF" };
+        self.socket.send(command).await?;
+        let response = self.recv_response().await?;
+
+        if response.is_ok() {
+            Ok(())
+        } else if response.status_code == 551 {
+            Err(Error::OperationFailed {
+                code: response.status_code.to_string(),
+                message: response.content().to_string(),
+            })
+        } else {
+            Err(Error::Protocol(format!(
+                "SAVECONF returned unexpected response code: {}",
+                response.status_code
+            )))
+        }
+    }
+
     /// Sends a signal to the Tor process.
     ///
     /// Signals control various aspects of Tor's behavior, from requesting
@@ -1929,6 +2145,514 @@ impl Controller {
             Err(e) => Err(e),
         }
     }
+
+    /// Loads configuration text as if it were read from the torrc.
+    ///
+    /// This allows dynamically configuring Tor without modifying the torrc file.
+    /// The configuration text is processed as if it were part of the torrc.
+    ///
+    /// # Arguments
+    ///
+    /// * `config_text` - The configuration text to load
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidRequest`] if:
+    /// - The configuration text contains invalid options
+    /// - The configuration text has syntax errors
+    ///
+    /// Returns [`Error::InvalidArguments`] if:
+    /// - An unknown configuration option is specified
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// // Load configuration
+    /// controller.load_conf("MaxCircuitDirtiness 600").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`set_conf`](Self::set_conf): Set individual configuration options
+    /// - [`save_conf`](Self::save_conf): Save configuration to torrc
+    pub async fn load_conf(&mut self, config_text: &str) -> Result<(), Error> {
+        let command = format!("LOADCONF\n{}", config_text);
+        self.socket.send(&command).await?;
+        let response = self.recv_response().await?;
+
+        if response.is_ok() {
+            Ok(())
+        } else if response.status_code == 552 || response.status_code == 553 {
+            let message = response.content().to_string();
+            if response.status_code == 552 && message.contains("Unknown option") {
+                // Extract the unknown option name
+                Err(Error::InvalidArguments(message))
+            } else {
+                Err(Error::InvalidRequest(message))
+            }
+        } else {
+            Err(Error::Protocol(format!(
+                "LOADCONF received unexpected response: {}",
+                response.status_code
+            )))
+        }
+    }
+
+    /// Drops guard nodes and optionally resets circuit timeouts.
+    ///
+    /// This forces Tor to drop its current guard nodes and select new ones.
+    /// Optionally, circuit build timeout counters can also be reset.
+    ///
+    /// # Arguments
+    ///
+    /// * `reset_timeouts` - If `true`, also reset circuit build timeout counters
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::OperationFailed`] if:
+    /// - Tor returns an error response
+    /// - `reset_timeouts` is `true` but Tor version doesn't support DROPTIMEOUTS
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// // Drop guards only
+    /// controller.drop_guards(false).await?;
+    ///
+    /// // Drop guards and reset timeouts
+    /// controller.drop_guards(true).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn drop_guards(&mut self, reset_timeouts: bool) -> Result<(), Error> {
+        self.socket.send("DROPGUARDS").await?;
+        let response = self.recv_response().await?;
+
+        if !response.is_ok() {
+            return Err(Error::OperationFailed {
+                code: response.status_code.to_string(),
+                message: response.content().to_string(),
+            });
+        }
+
+        if reset_timeouts {
+            self.socket.send("DROPTIMEOUTS").await?;
+            let response = self.recv_response().await?;
+
+            if !response.is_ok() {
+                return Err(Error::OperationFailed {
+                    code: response.status_code.to_string(),
+                    message: response.content().to_string(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Changes a circuit's purpose.
+    ///
+    /// Currently, two purposes are recognized: "general" and "controller".
+    ///
+    /// # Arguments
+    ///
+    /// * `circuit_id` - The ID of the circuit to repurpose
+    /// * `purpose` - The new purpose for the circuit
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidRequest`] if:
+    /// - The circuit doesn't exist
+    /// - The purpose is invalid
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::{Controller, CircuitId, CircuitPurpose};
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let circuit_id = CircuitId::new("5");
+    /// controller.repurpose_circuit(&circuit_id, CircuitPurpose::Controller).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn repurpose_circuit(
+        &mut self,
+        circuit_id: &CircuitId,
+        purpose: CircuitPurpose,
+    ) -> Result<(), Error> {
+        let command = format!("SETCIRCUITPURPOSE {} purpose={}", circuit_id.0, purpose);
+        self.socket.send(&command).await?;
+        let response = self.recv_response().await?;
+
+        if response.is_ok() {
+            Ok(())
+        } else if response.status_code == 552 {
+            Err(Error::InvalidRequest(response.content().to_string()))
+        } else {
+            Err(Error::Protocol(format!(
+                "SETCIRCUITPURPOSE returned unexpected response code: {}",
+                response.status_code
+            )))
+        }
+    }
+
+    /// Enables controller features that are disabled by default.
+    ///
+    /// Once enabled, a feature cannot be disabled and a new control connection
+    /// must be opened to get a connection with the feature disabled.
+    ///
+    /// # Arguments
+    ///
+    /// * `features` - List of feature names to enable
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidArguments`] if:
+    /// - An unrecognized feature is specified
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// controller.enable_feature(&["VERBOSE_NAMES"]).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn enable_feature(&mut self, features: &[&str]) -> Result<(), Error> {
+        let command = format!("USEFEATURE {}", features.join(" "));
+        self.socket.send(&command).await?;
+        let response = self.recv_response().await?;
+
+        if response.is_ok() {
+            Ok(())
+        } else if response.status_code == 552 {
+            let message = response.content().to_string();
+            Err(Error::InvalidArguments(message))
+        } else {
+            Err(Error::Protocol(format!(
+                "USEFEATURE provided an invalid response code: {}",
+                response.status_code
+            )))
+        }
+    }
+
+    /// Gets the addresses and ports where Tor is listening for connections.
+    ///
+    /// Returns a list of (address, port) tuples for the specified listener type.
+    ///
+    /// # Arguments
+    ///
+    /// * `listener_type` - The type of listener to query
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::OperationFailed`] if:
+    /// - The GETINFO command fails
+    ///
+    /// Returns [`Error::Protocol`] if:
+    /// - The response format is unexpected
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::{Controller, ListenerType};
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let listeners = controller.get_listeners(ListenerType::Socks).await?;
+    /// for (addr, port) in listeners {
+    ///     println!("SOCKS listener: {}:{}", addr, port);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`get_ports`](Self::get_ports): Get just the port numbers
+    pub async fn get_listeners(
+        &mut self,
+        listener_type: ListenerType,
+    ) -> Result<Vec<(String, u16)>, Error> {
+        let query = format!("net/listeners/{}", listener_type);
+        let response = self.get_info(&query).await?;
+
+        parse_listeners(&response)
+    }
+
+    /// Gets just the port numbers where Tor is listening for connections.
+    ///
+    /// Returns a set of unique port numbers for the specified listener type.
+    /// This is a convenience method that extracts just the ports from
+    /// [`get_listeners`](Self::get_listeners).
+    ///
+    /// # Arguments
+    ///
+    /// * `listener_type` - The type of listener to query
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::{Controller, ListenerType};
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let ports = controller.get_ports(ListenerType::Socks).await?;
+    /// for port in ports {
+    ///     println!("SOCKS port: {}", port);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`get_listeners`](Self::get_listeners): Get addresses and ports
+    pub async fn get_ports(&mut self, listener_type: ListenerType) -> Result<HashSet<u16>, Error> {
+        let listeners = self.get_listeners(listener_type).await?;
+        Ok(listeners.into_iter().map(|(_, port)| port).collect())
+    }
+
+    /// Gets the user Tor is running as.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::OperationFailed`] if:
+    /// - The information is not available
+    /// - Tor returns an error response
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let user = controller.get_user().await?;
+    /// println!("Tor is running as: {}", user);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn get_user(&mut self) -> Result<String, Error> {
+        self.get_info("process/user").await
+    }
+
+    /// Gets the Unix timestamp when Tor started.
+    ///
+    /// Calculates the start time by subtracting the uptime from the current time.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The uptime cannot be determined
+    /// - The uptime value is invalid
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let start_time = controller.get_start_time().await?;
+    /// println!("Tor started at: {}", start_time);
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`get_uptime`](Self::get_uptime): Get how long Tor has been running
+    pub async fn get_start_time(&mut self) -> Result<f64, Error> {
+        let uptime = self.get_uptime().await?;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| Error::Parse {
+                location: "system time".to_string(),
+                reason: e.to_string(),
+            })?
+            .as_secs_f64();
+        Ok(now - uptime)
+    }
+
+    /// Gets how long Tor has been running in seconds.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The GETINFO command fails
+    /// - The uptime value cannot be parsed
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let uptime = controller.get_uptime().await?;
+    /// println!("Tor has been running for {} seconds", uptime);
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`get_start_time`](Self::get_start_time): Get when Tor started
+    pub async fn get_uptime(&mut self) -> Result<f64, Error> {
+        let uptime_str = self.get_info("process/uptime").await?;
+        uptime_str.parse().map_err(|_| Error::Parse {
+            location: "uptime".to_string(),
+            reason: format!("invalid uptime value: {}", uptime_str),
+        })
+    }
+
+    /// Gets protocol information including authentication methods.
+    ///
+    /// Returns information about the Tor control protocol version,
+    /// the Tor version, and available authentication methods.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Parse`] if:
+    /// - The PROTOCOLINFO response cannot be parsed
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    ///
+    /// let info = controller.get_protocolinfo().await?;
+    /// println!("Protocol version: {}", info.protocol_version);
+    /// println!("Tor version: {}", info.tor_version);
+    /// println!("Auth methods: {:?}", info.auth_methods);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn get_protocolinfo(&mut self) -> Result<ProtocolInfo, Error> {
+        self.socket.send("PROTOCOLINFO 1").await?;
+        let response = self.recv_response().await?;
+
+        if !response.is_ok() {
+            return Err(Error::OperationFailed {
+                code: response.status_code.to_string(),
+                message: response.content().to_string(),
+            });
+        }
+
+        parse_protocolinfo(&response.all_content())
+    }
+
+    /// Gets accounting statistics for bandwidth limiting.
+    ///
+    /// Returns statistics about Tor's accounting status when AccountingMax
+    /// is set in the torrc.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::OperationFailed`] if:
+    /// - Accounting is not enabled
+    /// - The GETINFO commands fail
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let stats = controller.get_accounting_stats().await?;
+    /// println!("Status: {}", stats.status);
+    /// println!("Read: {} bytes", stats.read_bytes);
+    /// println!("Written: {} bytes", stats.written_bytes);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn get_accounting_stats(&mut self) -> Result<AccountingStats, Error> {
+        // Check if accounting is enabled
+        let enabled = self.get_info("accounting/enabled").await?;
+        if enabled != "1" {
+            return Err(Error::OperationFailed {
+                code: "552".to_string(),
+                message: "Accounting isn't enabled".to_string(),
+            });
+        }
+
+        let retrieved = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| Error::Parse {
+                location: "system time".to_string(),
+                reason: e.to_string(),
+            })?
+            .as_secs_f64();
+
+        let status = self.get_info("accounting/hibernating").await?;
+        let interval_end = self.get_info("accounting/interval-end").await.ok();
+        let bytes = self.get_info("accounting/bytes").await?;
+        let bytes_left = self.get_info("accounting/bytes-left").await?;
+
+        // Parse bytes: "read_bytes written_bytes"
+        let (read_bytes, written_bytes) = parse_accounting_bytes(&bytes)?;
+        let (read_bytes_left, write_bytes_left) = parse_accounting_bytes(&bytes_left)?;
+
+        // Calculate time until reset
+        let time_until_reset = if let Some(ref end) = interval_end {
+            parse_interval_end_to_seconds(end, retrieved).unwrap_or(0)
+        } else {
+            0
+        };
+
+        Ok(AccountingStats {
+            retrieved,
+            status,
+            interval_end,
+            time_until_reset,
+            read_bytes,
+            read_bytes_left,
+            read_limit: read_bytes + read_bytes_left,
+            written_bytes,
+            write_bytes_left,
+            write_limit: written_bytes + write_bytes_left,
+        })
+    }
 }
 
 /// Response from ADD_ONION command.
@@ -2144,6 +2868,169 @@ fn parse_target(target: &str) -> Result<(String, u16), Error> {
         Ok((host, port))
     } else {
         Ok((target.to_string(), 0))
+    }
+}
+
+/// Parses listener response from GETINFO net/listeners/*.
+///
+/// The response contains quoted "address:port" pairs separated by spaces.
+fn parse_listeners(response: &str) -> Result<Vec<(String, u16)>, Error> {
+    let mut listeners = Vec::new();
+
+    for listener in response.split_whitespace() {
+        // Strip quotes
+        let listener = listener.trim_matches('"');
+        if listener.is_empty() {
+            continue;
+        }
+
+        // Skip unix sockets
+        if listener.starts_with("unix:") {
+            continue;
+        }
+
+        // Find the last colon to split address and port
+        if let Some(colon_pos) = listener.rfind(':') {
+            let mut addr = listener[..colon_pos].to_string();
+            let port_str = &listener[colon_pos + 1..];
+
+            // Handle IPv6 addresses in brackets
+            if addr.starts_with('[') && addr.ends_with(']') {
+                addr = addr[1..addr.len() - 1].to_string();
+            }
+
+            let port: u16 = port_str.parse().map_err(|_| Error::Parse {
+                location: "listener".to_string(),
+                reason: format!("invalid port: {}", port_str),
+            })?;
+
+            listeners.push((addr, port));
+        }
+    }
+
+    Ok(listeners)
+}
+
+/// Parses PROTOCOLINFO response.
+fn parse_protocolinfo(content: &str) -> Result<ProtocolInfo, Error> {
+    let mut protocol_version = 1;
+    let mut tor_version = String::new();
+    let mut auth_methods = Vec::new();
+    let mut cookie_file = None;
+
+    for line in content.lines() {
+        let line = line.trim();
+
+        if line.starts_with("PROTOCOLINFO ") {
+            if let Ok(v) = line[13..].trim().parse::<u32>() {
+                protocol_version = v;
+            }
+        } else if line.starts_with("AUTH METHODS=") {
+            // Parse: AUTH METHODS=COOKIE,SAFECOOKIE COOKIEFILE="/path/to/cookie"
+            let rest = &line[13..];
+
+            // Find METHODS value
+            if let Some(space_pos) = rest.find(' ') {
+                let methods_str = &rest[..space_pos];
+                auth_methods = methods_str.split(',').map(|s| s.to_string()).collect();
+
+                // Look for COOKIEFILE
+                let remaining = &rest[space_pos..];
+                if let Some(cookie_start) = remaining.find("COOKIEFILE=\"") {
+                    let cookie_path_start = cookie_start + 12;
+                    if let Some(cookie_end) = remaining[cookie_path_start..].find('"') {
+                        cookie_file =
+                            Some(remaining[cookie_path_start..cookie_path_start + cookie_end].to_string());
+                    }
+                }
+            } else {
+                auth_methods = rest.split(',').map(|s| s.to_string()).collect();
+            }
+        } else if line.starts_with("VERSION Tor=\"") {
+            // Parse: VERSION Tor="0.4.7.10"
+            if let Some(start) = line.find("Tor=\"") {
+                let version_start = start + 5;
+                if let Some(end) = line[version_start..].find('"') {
+                    tor_version = line[version_start..version_start + end].to_string();
+                }
+            }
+        }
+    }
+
+    Ok(ProtocolInfo {
+        protocol_version,
+        tor_version,
+        auth_methods,
+        cookie_file,
+    })
+}
+
+/// Parses accounting bytes response: "read_bytes written_bytes"
+fn parse_accounting_bytes(bytes_str: &str) -> Result<(u64, u64), Error> {
+    let parts: Vec<&str> = bytes_str.split_whitespace().collect();
+    if parts.len() != 2 {
+        return Err(Error::Parse {
+            location: "accounting bytes".to_string(),
+            reason: format!("expected 'read written', got: {}", bytes_str),
+        });
+    }
+
+    let read: u64 = parts[0].parse().map_err(|_| Error::Parse {
+        location: "accounting bytes".to_string(),
+        reason: format!("invalid read bytes: {}", parts[0]),
+    })?;
+
+    let written: u64 = parts[1].parse().map_err(|_| Error::Parse {
+        location: "accounting bytes".to_string(),
+        reason: format!("invalid written bytes: {}", parts[1]),
+    })?;
+
+    Ok((read, written))
+}
+
+/// Parses interval end timestamp and calculates seconds until reset.
+fn parse_interval_end_to_seconds(interval_end: &str, current_time: f64) -> Option<u64> {
+    // interval_end format: "YYYY-MM-DD HH:MM:SS"
+    // This is a simplified parser - in production you'd use chrono
+    let parts: Vec<&str> = interval_end.split_whitespace().collect();
+    if parts.len() != 2 {
+        return None;
+    }
+
+    let date_parts: Vec<&str> = parts[0].split('-').collect();
+    let time_parts: Vec<&str> = parts[1].split(':').collect();
+
+    if date_parts.len() != 3 || time_parts.len() != 3 {
+        return None;
+    }
+
+    let year: i32 = date_parts[0].parse().ok()?;
+    let month: u32 = date_parts[1].parse().ok()?;
+    let day: u32 = date_parts[2].parse().ok()?;
+    let hour: u32 = time_parts[0].parse().ok()?;
+    let minute: u32 = time_parts[1].parse().ok()?;
+    let second: u32 = time_parts[2].parse().ok()?;
+
+    // Simple calculation - days since epoch approximation
+    // This is a rough estimate; for production use chrono crate
+    let days_since_epoch = (year - 1970) * 365 + (year - 1969) / 4 + day_of_year(month, day) as i32;
+    let end_timestamp =
+        days_since_epoch as f64 * 86400.0 + hour as f64 * 3600.0 + minute as f64 * 60.0 + second as f64;
+
+    if end_timestamp > current_time {
+        Some((end_timestamp - current_time) as u64)
+    } else {
+        Some(0)
+    }
+}
+
+/// Helper to calculate day of year (approximate).
+fn day_of_year(month: u32, day: u32) -> u32 {
+    let days_before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    if month >= 1 && month <= 12 {
+        days_before_month[(month - 1) as usize] + day
+    } else {
+        day
     }
 }
 
@@ -2576,5 +3463,134 @@ mod stem_tests {
         let content = "PrivateKey=ED25519-V3:base64keydata==";
         let result = parse_add_onion_response(content);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_listener_type_display() {
+        assert_eq!(ListenerType::Or.to_string(), "or");
+        assert_eq!(ListenerType::Dir.to_string(), "dir");
+        assert_eq!(ListenerType::Socks.to_string(), "socks");
+        assert_eq!(ListenerType::Trans.to_string(), "trans");
+        assert_eq!(ListenerType::Natd.to_string(), "natd");
+        assert_eq!(ListenerType::Dns.to_string(), "dns");
+        assert_eq!(ListenerType::Control.to_string(), "control");
+        assert_eq!(ListenerType::ExtOr.to_string(), "extor");
+        assert_eq!(ListenerType::HttpTunnel.to_string(), "httptunnel");
+    }
+
+    #[test]
+    fn test_circuit_purpose_display() {
+        assert_eq!(CircuitPurpose::General.to_string(), "general");
+        assert_eq!(CircuitPurpose::Controller.to_string(), "controller");
+    }
+
+    #[test]
+    fn test_parse_listeners_single() {
+        let response = r#""127.0.0.1:9050""#;
+        let listeners = parse_listeners(response).unwrap();
+        assert_eq!(listeners.len(), 1);
+        assert_eq!(listeners[0], ("127.0.0.1".to_string(), 9050));
+    }
+
+    #[test]
+    fn test_parse_listeners_multiple() {
+        let response = r#""127.0.0.1:9050" "0.0.0.0:9051""#;
+        let listeners = parse_listeners(response).unwrap();
+        assert_eq!(listeners.len(), 2);
+        assert_eq!(listeners[0], ("127.0.0.1".to_string(), 9050));
+        assert_eq!(listeners[1], ("0.0.0.0".to_string(), 9051));
+    }
+
+    #[test]
+    fn test_parse_listeners_ipv6() {
+        let response = r#""[::1]:9050""#;
+        let listeners = parse_listeners(response).unwrap();
+        assert_eq!(listeners.len(), 1);
+        assert_eq!(listeners[0], ("::1".to_string(), 9050));
+    }
+
+    #[test]
+    fn test_parse_listeners_empty() {
+        let response = "";
+        let listeners = parse_listeners(response).unwrap();
+        assert!(listeners.is_empty());
+    }
+
+    #[test]
+    fn test_parse_listeners_unix_socket_skipped() {
+        let response = r#""unix:/tmp/tor/socket" "127.0.0.1:9050""#;
+        let listeners = parse_listeners(response).unwrap();
+        assert_eq!(listeners.len(), 1);
+        assert_eq!(listeners[0], ("127.0.0.1".to_string(), 9050));
+    }
+
+    #[test]
+    fn test_parse_protocolinfo_basic() {
+        let content = r#"PROTOCOLINFO 1
+AUTH METHODS=COOKIE,SAFECOOKIE COOKIEFILE="/var/run/tor/control.authcookie"
+VERSION Tor="0.4.7.10"
+OK"#;
+        let info = parse_protocolinfo(content).unwrap();
+        assert_eq!(info.protocol_version, 1);
+        assert_eq!(info.tor_version, "0.4.7.10");
+        assert_eq!(info.auth_methods, vec!["COOKIE", "SAFECOOKIE"]);
+        assert_eq!(
+            info.cookie_file,
+            Some("/var/run/tor/control.authcookie".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_protocolinfo_null_auth() {
+        let content = r#"PROTOCOLINFO 1
+AUTH METHODS=NULL
+VERSION Tor="0.4.7.10"
+OK"#;
+        let info = parse_protocolinfo(content).unwrap();
+        assert_eq!(info.auth_methods, vec!["NULL"]);
+        assert!(info.cookie_file.is_none());
+    }
+
+    #[test]
+    fn test_parse_accounting_bytes() {
+        let bytes_str = "1234567 7654321";
+        let (read, written) = parse_accounting_bytes(bytes_str).unwrap();
+        assert_eq!(read, 1234567);
+        assert_eq!(written, 7654321);
+    }
+
+    #[test]
+    fn test_parse_accounting_bytes_zero() {
+        let bytes_str = "0 0";
+        let (read, written) = parse_accounting_bytes(bytes_str).unwrap();
+        assert_eq!(read, 0);
+        assert_eq!(written, 0);
+    }
+
+    #[test]
+    fn test_parse_accounting_bytes_invalid() {
+        let bytes_str = "invalid";
+        assert!(parse_accounting_bytes(bytes_str).is_err());
+    }
+
+    #[test]
+    fn test_listener_type_equality() {
+        assert_eq!(ListenerType::Socks, ListenerType::Socks);
+        assert_ne!(ListenerType::Socks, ListenerType::Control);
+    }
+
+    #[test]
+    fn test_circuit_purpose_equality() {
+        assert_eq!(CircuitPurpose::General, CircuitPurpose::General);
+        assert_ne!(CircuitPurpose::General, CircuitPurpose::Controller);
+    }
+
+    #[test]
+    fn test_listener_type_hash() {
+        let mut set = HashSet::new();
+        set.insert(ListenerType::Socks);
+        set.insert(ListenerType::Control);
+        set.insert(ListenerType::Socks);
+        assert_eq!(set.len(), 2);
     }
 }

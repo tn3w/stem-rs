@@ -1673,6 +1673,26 @@ pub struct CircuitBandwidthEvent {
     pub read: u64,
     /// Bytes written on this circuit.
     pub written: u64,
+    /// User payload bytes received on this circuit (if available).
+    ///
+    /// This field was added in Tor 0.4.1.1-alpha and represents the actual
+    /// user data received, excluding cell overhead.
+    pub delivered_read: Option<u64>,
+    /// User payload bytes sent on this circuit (if available).
+    ///
+    /// This field was added in Tor 0.4.1.1-alpha and represents the actual
+    /// user data sent, excluding cell overhead.
+    pub delivered_written: Option<u64>,
+    /// Overhead bytes received on this circuit (if available).
+    ///
+    /// This field was added in Tor 0.4.1.1-alpha and represents padding
+    /// added to make cells a fixed length.
+    pub overhead_read: Option<u64>,
+    /// Overhead bytes sent on this circuit (if available).
+    ///
+    /// This field was added in Tor 0.4.1.1-alpha and represents padding
+    /// added to make cells a fixed length.
+    pub overhead_written: Option<u64>,
     /// Timestamp of the measurement (if available).
     pub time: Option<DateTime<Utc>>,
     raw_content: String,
@@ -1701,8 +1721,11 @@ impl CircuitBandwidthEvent {
     /// # Event Format
     ///
     /// ```text
-    /// ID=CircuitID READ=bytes WRITTEN=bytes [TIME=timestamp]
+    /// ID=CircuitID READ=bytes WRITTEN=bytes [DELIVERED_READ=bytes] [DELIVERED_WRITTEN=bytes]
+    /// [OVERHEAD_READ=bytes] [OVERHEAD_WRITTEN=bytes] [TIME=timestamp]
     /// ```
+    ///
+    /// The DELIVERED_* and OVERHEAD_* fields were added in Tor 0.4.1.1-alpha.
     ///
     /// # Errors
     ///
@@ -1714,6 +1737,10 @@ impl CircuitBandwidthEvent {
         let mut id = None;
         let mut read = None;
         let mut written = None;
+        let mut delivered_read = None;
+        let mut delivered_written = None;
+        let mut overhead_read = None;
+        let mut overhead_written = None;
         let mut time = None;
 
         while !line.is_empty() {
@@ -1732,6 +1759,30 @@ impl CircuitBandwidthEvent {
                     v.parse()
                         .map_err(|_| Error::Protocol(format!("invalid WRITTEN value: {}", v)))?,
                 );
+            } else if line.is_next_mapping(Some("DELIVERED_READ"), false) {
+                let (_, v) = line.pop_mapping(false, false)?;
+                delivered_read = Some(
+                    v.parse()
+                        .map_err(|_| Error::Protocol(format!("invalid DELIVERED_READ value: {}", v)))?,
+                );
+            } else if line.is_next_mapping(Some("DELIVERED_WRITTEN"), false) {
+                let (_, v) = line.pop_mapping(false, false)?;
+                delivered_written = Some(
+                    v.parse()
+                        .map_err(|_| Error::Protocol(format!("invalid DELIVERED_WRITTEN value: {}", v)))?,
+                );
+            } else if line.is_next_mapping(Some("OVERHEAD_READ"), false) {
+                let (_, v) = line.pop_mapping(false, false)?;
+                overhead_read = Some(
+                    v.parse()
+                        .map_err(|_| Error::Protocol(format!("invalid OVERHEAD_READ value: {}", v)))?,
+                );
+            } else if line.is_next_mapping(Some("OVERHEAD_WRITTEN"), false) {
+                let (_, v) = line.pop_mapping(false, false)?;
+                overhead_written = Some(
+                    v.parse()
+                        .map_err(|_| Error::Protocol(format!("invalid OVERHEAD_WRITTEN value: {}", v)))?,
+                );
             } else if line.is_next_mapping(Some("TIME"), false) {
                 let (_, v) = line.pop_mapping(false, false)?;
                 time = parse_iso_timestamp(&v).ok();
@@ -1745,6 +1796,10 @@ impl CircuitBandwidthEvent {
             read: read.ok_or_else(|| Error::Protocol("missing READ in CIRC_BW".to_string()))?,
             written: written
                 .ok_or_else(|| Error::Protocol("missing WRITTEN in CIRC_BW".to_string()))?,
+            delivered_read,
+            delivered_written,
+            overhead_read,
+            overhead_written,
             time,
             raw_content: content.to_string(),
             arrived_at: Instant::now(),
