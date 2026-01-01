@@ -111,7 +111,7 @@ jobs:
             filedate=$(stat -c %y "$file" | cut -d' ' -f1)
             
             if [[ "$filename" == *.tar.gz ]]; then
-              icon="�"
+              icon="📦"
             else
               icon="📁"
             fi
