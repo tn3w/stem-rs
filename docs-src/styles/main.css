@@ -116,6 +116,12 @@ header nav {
     color: var(--color-text-primary);
 }
 
+@media (max-width: 640px) {
+    .nav-hide-mobile {
+        display: none;
+    }
+}
+
 #hero {
     min-height: 100vh;
     min-height: 100dvh;
@@ -182,7 +188,6 @@ header nav {
 
 .hero-install {
     background-color: var(--color-code-bg);
-    border: 1px solid var(--color-code-border);
     border-radius: var(--border-radius);
     padding: var(--space-4) var(--space-8);
     display: inline-flex;
@@ -190,6 +195,34 @@ header nav {
     gap: var(--space-3);
     margin-bottom: var(--space-10);
     box-shadow: var(--shadow-lg);
+    position: relative;
+}
+
+.hero-install::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: calc(var(--border-radius) + 2px);
+    background: linear-gradient(
+        135deg,
+        rgba(125, 70, 152, 0.6),
+        rgba(168, 85, 247, 0.4),
+        rgba(125, 70, 152, 0.2),
+        rgba(168, 85, 247, 0.4),
+        rgba(125, 70, 152, 0.6)
+    );
+    background-size: 300% 300%;
+    animation: border-glow 4s ease infinite;
+    z-index: -1;
+}
+
+@keyframes border-glow {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
 }
 
 .hero-install-prompt {
@@ -737,11 +770,12 @@ footer {
         height: 100vh;
         height: 100dvh;
         min-height: auto;
-        padding: var(--space-20) 0;
+        padding: var(--space-12) 0;
     }
 
     .hero-stats {
-        display: none;
+        margin-top: var(--space-8);
+        padding-top: var(--space-6);
     }
 
     .features-grid {
