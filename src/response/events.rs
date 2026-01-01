@@ -34,7 +34,7 @@
 //! | `ADDRMAP` | Address mapping changes |
 //! | `SIGNAL` | Signal received by Tor |
 //! | `HS_DESC` | Hidden service descriptor events |
-//! | And many more... | See [`EventType`](crate::EventType) for full list |
+//! | And many more... | See [`EventType`] for full list |
 //!
 //! # Example
 //!
@@ -57,7 +57,6 @@
 //! # See Also
 //!
 //! - [`crate::events`]: Event type definitions and structures
-//! - [`crate::Controller::add_event_listener`]: Subscribe to events
 //! - [`crate::EventType`]: Enumeration of all event types
 //! - [Tor Control Protocol: Async Events](https://spec.torproject.org/control-spec/replies.html#async-events)
 
@@ -84,7 +83,7 @@ pub use crate::events::{Event, ParsedEvent as EventEnum};
 ///
 /// # Errors
 ///
-/// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+/// Returns [`Error::Protocol`] if:
 /// - The message is empty
 /// - The status code is not 650
 /// - The event content is empty

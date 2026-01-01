@@ -107,11 +107,11 @@ impl MapAddressResponse {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - [`Error::InvalidRequest`](crate::Error::InvalidRequest): All addresses
+    /// - [`Error::InvalidRequest`]: All addresses
     ///   were invalid (512 error code)
-    /// - [`Error::OperationFailed`](crate::Error::OperationFailed): Tor was
+    /// - [`Error::OperationFailed`]: Tor was
     ///   unable to satisfy the request (451 error code)
-    /// - [`Error::Protocol`](crate::Error::Protocol): Response format was
+    /// - [`Error::Protocol`]: Response format was
     ///   invalid (missing `=` separator, unexpected status code)
     ///
     /// # Example

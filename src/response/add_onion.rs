@@ -129,7 +129,7 @@ impl AddOnionResponse {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - The response status is not OK (2xx)
     /// - The response doesn't contain a ServiceID
     /// - PrivateKey line is malformed (missing `:` separator)

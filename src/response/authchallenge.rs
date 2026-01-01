@@ -143,7 +143,7 @@ impl AuthChallengeResponse {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - The response status is not OK (2xx)
     /// - The response contains multiple lines (should be single-line)
     /// - The response is empty

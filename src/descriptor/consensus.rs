@@ -86,7 +86,7 @@
 //! # See Also
 //!
 //! - [`RouterStatusEntry`](super::RouterStatusEntry) - Individual relay entries in consensus
-//! - [`DirectoryAuthority`](super::DirectoryAuthority) - Authority information
+//! - [`DirectoryAuthority`] - Authority information
 //! - [Python Stem NetworkStatusDocument](https://stem.torproject.org/api/descriptor/networkstatus.html)
 
 use std::collections::HashMap;

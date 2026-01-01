@@ -71,7 +71,7 @@
 //! - **Unix domain sockets**: Supported on Unix-like systems only (Linux, macOS, BSD)
 //!
 //! On non-Unix platforms, [`connect_unix`](ControlSocket::connect_unix) returns
-//! [`Error::Socket`](crate::Error::Socket) with `ErrorKind::Unsupported`.
+//! [`Error::Socket`] with `ErrorKind::Unsupported`.
 //!
 //! # See Also
 //!
@@ -204,7 +204,7 @@ impl ControlSocket {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Socket`](crate::Error::Socket) if:
+    /// Returns [`Error::Socket`] if:
     ///
     /// - The connection is refused (Tor not running or wrong port)
     /// - The address is unreachable (network error)
@@ -246,7 +246,7 @@ impl ControlSocket {
     /// # Platform Support
     ///
     /// This method is only available on Unix-like systems (Linux, macOS, BSD).
-    /// On other platforms, it returns [`Error::Socket`](crate::Error::Socket)
+    /// On other platforms, it returns [`Error::Socket`]
     /// with `ErrorKind::Unsupported`.
     ///
     /// # Preconditions
@@ -266,7 +266,7 @@ impl ControlSocket {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Socket`](crate::Error::Socket) if:
+    /// Returns [`Error::Socket`] if:
     ///
     /// - The socket file does not exist
     /// - Permission denied (insufficient privileges)
@@ -345,7 +345,7 @@ impl ControlSocket {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Socket`](crate::Error::Socket) if:
+    /// Returns [`Error::Socket`] if:
     ///
     /// - The socket has been closed or disconnected
     /// - A write error occurs
@@ -438,9 +438,9 @@ impl ControlSocket {
     ///
     /// Returns an error if:
     ///
-    /// - [`Error::SocketClosed`](crate::Error::SocketClosed): The socket was closed
+    /// - [`Error::SocketClosed`]: The socket was closed
     ///   before a complete message was received
-    /// - [`Error::Protocol`](crate::Error::Protocol): The response is malformed:
+    /// - [`Error::Protocol`]: The response is malformed:
     ///   - Line too short (less than 4 characters)
     ///   - Invalid status code (not a 3-digit number)
     ///   - Inconsistent status codes across lines

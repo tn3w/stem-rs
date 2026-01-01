@@ -105,11 +105,11 @@ impl GetInfoResponse {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - [`Error::InvalidArguments`](crate::Error::InvalidArguments): One or more
+    /// - [`Error::InvalidArguments`]: One or more
     ///   requested keys were not recognized by Tor
-    /// - [`Error::OperationFailed`](crate::Error::OperationFailed): Tor returned
+    /// - [`Error::OperationFailed`]: Tor returned
     ///   an error code
-    /// - [`Error::Protocol`](crate::Error::Protocol): The response format was
+    /// - [`Error::Protocol`]: The response format was
     ///   invalid (missing `=` separator, malformed multi-line value, etc.)
     ///
     /// # Example
@@ -214,7 +214,7 @@ impl GetInfoResponse {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if the response
+    /// Returns [`Error::Protocol`] if the response
     /// keys don't exactly match the requested parameters.
     ///
     /// # Example

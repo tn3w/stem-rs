@@ -57,7 +57,6 @@
 //! # See Also
 //!
 //! - [`crate::Controller::get_conf`]: High-level API for getting configuration
-//! - [`GetInfoResponse`]: For querying runtime information
 //! - [Tor Control Protocol: GETCONF](https://spec.torproject.org/control-spec/commands.html#getconf)
 
 use std::collections::HashMap;
@@ -124,9 +123,9 @@ impl GetConfResponse {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - [`Error::InvalidArguments`](crate::Error::InvalidArguments): One or more
+    /// - [`Error::InvalidArguments`]: One or more
     ///   requested configuration options were not recognized by Tor
-    /// - [`Error::Protocol`](crate::Error::Protocol): The response had a non-OK
+    /// - [`Error::Protocol`]: The response had a non-OK
     ///   status code for other reasons
     ///
     /// # Example

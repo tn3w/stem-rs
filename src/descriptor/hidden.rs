@@ -1195,7 +1195,7 @@ impl OuterLayer {
 ///
 /// # Structure
 ///
-/// - `formats`: Supported CREATE2 cell formats (typically [2] for ntor)
+/// - `formats`: Supported CREATE2 cell formats (typically \[2\] for ntor)
 /// - `intro_auth`: Required authentication methods for introduction
 /// - `is_single_service`: Whether this is a single-onion service
 /// - `introduction_points`: List of introduction point relays
@@ -1226,7 +1226,7 @@ impl OuterLayer {
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct InnerLayer {
-    /// Supported CREATE2 cell formats (typically [2] for ntor handshake).
+    /// Supported CREATE2 cell formats (typically \[2\] for ntor handshake).
     pub formats: Vec<u32>,
     /// Required authentication methods for introduction (e.g., ["ed25519"]).
     pub intro_auth: Vec<String>,
@@ -1410,7 +1410,7 @@ impl HiddenServiceDescriptorV3 {
     /// Converts an Ed25519 identity key to a v3 `.onion` address.
     ///
     /// The address is computed as:
-    /// 1. Compute checksum: SHA3-256(".onion checksum" || pubkey || version)[0:2]
+    /// 1. Compute checksum: SHA3-256(".onion checksum" || pubkey || version)\[0:2\]
     /// 2. Concatenate: pubkey || checksum || version
     /// 3. Base32-encode and append ".onion"
     ///

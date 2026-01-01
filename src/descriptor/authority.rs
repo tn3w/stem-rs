@@ -136,7 +136,7 @@ pub struct SharedRandomnessCommitment {
 ///
 /// # See Also
 ///
-/// - [`KeyCertificate`](super::key_cert::KeyCertificate): Authority signing keys
+/// - [`KeyCertificate`]: Authority signing keys
 /// - [`NetworkStatusDocument`](super::consensus::NetworkStatusDocument): Contains authority entries
 #[derive(Debug, Clone, PartialEq)]
 pub struct DirectoryAuthority {

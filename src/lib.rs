@@ -66,7 +66,7 @@
 //!
 //! # Error Handling
 //!
-//! All fallible operations return [`Result<T, Error>`]. The [`Error`] enum provides
+//! All fallible operations return [`Result<T, Error>`]. The [`enum@Error`] enum provides
 //! specific error variants for different failure modes:
 //!
 //! - [`Error::Socket`] - I/O and connection failures
@@ -74,7 +74,7 @@
 //! - [`Error::OperationFailed`] - Tor rejected the operation
 //! - [`Error::Parse`] - Descriptor parsing failures
 //!
-//! See the [`Error`] documentation for recovery guidance.
+//! See the [`enum@Error`] documentation for recovery guidance.
 
 #![warn(missing_docs)]
 #![warn(rustdoc::broken_intra_doc_links)]

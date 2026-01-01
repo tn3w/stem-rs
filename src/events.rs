@@ -257,7 +257,7 @@ impl BandwidthEvent {
 ///
 /// # See Also
 ///
-/// - [`Runlevel`](crate::Runlevel) - Log severity levels
+/// - [`Runlevel`] - Log severity levels
 /// - [`StatusEvent`] - Structured status messages
 #[derive(Debug, Clone)]
 pub struct LogEvent {
@@ -360,9 +360,9 @@ impl LogEvent {
 ///
 /// # See Also
 ///
-/// - [`CircStatus`](crate::CircStatus) - Circuit status values
-/// - [`CircPurpose`](crate::CircPurpose) - Circuit purpose types
-/// - [`CircClosureReason`](crate::CircClosureReason) - Closure reasons
+/// - [`CircStatus`] - Circuit status values
+/// - [`CircPurpose`] - Circuit purpose types
+/// - [`CircClosureReason`] - Closure reasons
 #[derive(Debug, Clone)]
 pub struct CircuitEvent {
     /// Unique identifier for this circuit.
@@ -544,9 +544,9 @@ impl CircuitEvent {
 ///
 /// # See Also
 ///
-/// - [`StreamStatus`](crate::StreamStatus) - Stream status values
-/// - [`StreamPurpose`](crate::StreamPurpose) - Stream purpose types
-/// - [`StreamClosureReason`](crate::StreamClosureReason) - Closure reasons
+/// - [`StreamStatus`] - Stream status values
+/// - [`StreamPurpose`] - Stream purpose types
+/// - [`StreamClosureReason`] - Closure reasons
 #[derive(Debug, Clone)]
 pub struct StreamEvent {
     /// Unique identifier for this stream.
@@ -699,8 +699,8 @@ impl StreamEvent {
 ///
 /// # See Also
 ///
-/// - [`OrStatus`](crate::OrStatus) - OR connection status values
-/// - [`OrClosureReason`](crate::OrClosureReason) - Closure reasons
+/// - [`OrStatus`] - OR connection status values
+/// - [`OrClosureReason`] - Closure reasons
 #[derive(Debug, Clone)]
 pub struct OrConnEvent {
     /// Connection identifier (may be `None` for older Tor versions).
@@ -968,7 +968,7 @@ impl AddrMapEvent {
 ///
 /// # See Also
 ///
-/// - [`TimeoutSetType`](crate::TimeoutSetType) - Timeout change reasons
+/// - [`TimeoutSetType`] - Timeout change reasons
 #[derive(Debug, Clone)]
 pub struct BuildTimeoutSetEvent {
     /// Type of timeout change.
@@ -1153,8 +1153,8 @@ impl BuildTimeoutSetEvent {
 ///
 /// # See Also
 ///
-/// - [`GuardType`](crate::GuardType) - Guard type values
-/// - [`GuardStatus`](crate::GuardStatus) - Guard status values
+/// - [`GuardType`] - Guard type values
+/// - [`GuardStatus`] - Guard status values
 #[derive(Debug, Clone)]
 pub struct GuardEvent {
     /// Type of guard (currently only Entry).
@@ -1334,7 +1334,7 @@ impl NewDescEvent {
 ///
 /// # See Also
 ///
-/// - [`Signal`](crate::Signal) - Signal types
+/// - [`Signal`] - Signal types
 #[derive(Debug, Clone)]
 pub struct SignalEvent {
     /// The signal that was received.
@@ -1413,8 +1413,8 @@ impl SignalEvent {
 ///
 /// # See Also
 ///
-/// - [`StatusType`](crate::StatusType) - Status event types
-/// - [`Runlevel`](crate::Runlevel) - Severity levels
+/// - [`StatusType`] - Status event types
+/// - [`Runlevel`] - Severity levels
 #[derive(Debug, Clone)]
 pub struct StatusEvent {
     /// Type of status event (General, Client, or Server).
@@ -1785,7 +1785,7 @@ impl CircuitBandwidthEvent {
 ///
 /// - [`BandwidthEvent`] - Aggregate bandwidth
 /// - [`CircuitBandwidthEvent`] - Per-circuit bandwidth
-/// - [`ConnectionType`](crate::ConnectionType) - Connection types
+/// - [`ConnectionType`] - Connection types
 #[derive(Debug, Clone)]
 pub struct ConnectionBandwidthEvent {
     /// Connection identifier.
@@ -1920,9 +1920,9 @@ impl ConnectionBandwidthEvent {
 ///
 /// # See Also
 ///
-/// - [`HsDescAction`](crate::HsDescAction) - Descriptor actions
-/// - [`HsDescReason`](crate::HsDescReason) - Failure reasons
-/// - [`HsAuth`](crate::HsAuth) - Authentication types
+/// - [`HsDescAction`] - Descriptor actions
+/// - [`HsDescReason`] - Failure reasons
+/// - [`HsAuth`] - Authentication types
 #[derive(Debug, Clone)]
 pub struct HsDescEvent {
     /// Action being performed on the descriptor.

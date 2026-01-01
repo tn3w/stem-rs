@@ -106,7 +106,7 @@ const MAX_EVENTS: usize = 100;
 ///
 /// # Invariants
 ///
-/// - The event buffer never exceeds [`MAX_EVENTS`] entries
+/// - The event buffer never exceeds 100 entries
 /// - Events are stored in reverse chronological order (newest first)
 /// - The underlying controller connection must remain valid
 ///

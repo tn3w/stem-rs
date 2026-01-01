@@ -213,7 +213,7 @@ impl ProtocolInfoResponse {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - The response status is not OK
     /// - The response doesn't start with "PROTOCOLINFO"
     /// - The protocol version is missing or non-numeric

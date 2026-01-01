@@ -156,7 +156,7 @@ impl OnionClientAuthViewResponse {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - The response status is not OK
     /// - The response is empty
     /// - The response doesn't start with "ONION_CLIENT_AUTH_VIEW"

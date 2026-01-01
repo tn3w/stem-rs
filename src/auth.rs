@@ -383,8 +383,8 @@ impl ProtocolInfo {
 /// # Errors
 ///
 /// Returns an error if:
-/// - [`Error::Socket`](crate::Error::Socket): Connection failed or was closed
-/// - [`Error::Protocol`](crate::Error::Protocol): Response was malformed or indicated failure
+/// - [`Error::Socket`]: Connection failed or was closed
+/// - [`Error::Protocol`]: Response was malformed or indicated failure
 ///
 /// # Example
 ///
@@ -449,12 +449,12 @@ pub async fn get_protocol_info(socket: &mut ControlSocket) -> Result<ProtocolInf
 ///
 /// Returns [`Error::Authentication`] with specific [`AuthError`] variants:
 ///
-/// - [`AuthError::NoMethods`](crate::AuthError::NoMethods): No compatible auth methods available
-/// - [`AuthError::MissingPassword`](crate::AuthError::MissingPassword): PASSWORD auth required but no password provided
-/// - [`AuthError::IncorrectPassword`](crate::AuthError::IncorrectPassword): PASSWORD auth failed
-/// - [`AuthError::CookieUnreadable`](crate::AuthError::CookieUnreadable): Cannot read cookie file
-/// - [`AuthError::IncorrectCookie`](crate::AuthError::IncorrectCookie): COOKIE auth failed
-/// - [`AuthError::ChallengeFailed`](crate::AuthError::ChallengeFailed): SAFECOOKIE challenge failed
+/// - [`AuthError::NoMethods`]: No compatible auth methods available
+/// - [`AuthError::MissingPassword`]: PASSWORD auth required but no password provided
+/// - [`AuthError::IncorrectPassword`]: PASSWORD auth failed
+/// - [`AuthError::CookieUnreadable`]: Cannot read cookie file
+/// - [`AuthError::IncorrectCookie`]: COOKIE auth failed
+/// - [`AuthError::ChallengeFailed`]: SAFECOOKIE challenge failed
 ///
 /// # Example
 ///

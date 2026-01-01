@@ -486,7 +486,7 @@ impl Ed25519Extension {
 /// # See Also
 ///
 /// - [`Ed25519Extension`] - Extensions within certificates
-/// - [`CertType`](crate::client::datatype::CertType) - Certificate type enumeration
+/// - [`CertType`] - Certificate type enumeration
 /// - [cert-spec.txt](https://gitweb.torproject.org/torspec.git/tree/cert-spec.txt) - Tor specification
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ed25519Certificate {
@@ -498,7 +498,7 @@ pub struct Ed25519Certificate {
 
     /// The parsed certificate type.
     ///
-    /// Indicates the purpose of this certificate. See [`CertType`](crate::client::datatype::CertType)
+    /// Indicates the purpose of this certificate. See [`CertType`]
     /// for the full enumeration.
     pub cert_type: CertType,
 

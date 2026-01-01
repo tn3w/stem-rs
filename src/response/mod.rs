@@ -173,7 +173,7 @@ impl ControlMessage {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if `parsed_content` is empty,
+    /// Returns [`Error::Protocol`] if `parsed_content` is empty,
     /// as control messages must contain at least one line.
     ///
     /// # Example
@@ -227,7 +227,7 @@ impl ControlMessage {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - The content contains no valid control protocol lines
     /// - The specified `msg_type` validation fails
     ///
@@ -832,7 +832,7 @@ impl ControlLine {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - No remaining content to parse
     /// - `quoted` is `true` but the next entry isn't quoted
     ///
@@ -877,7 +877,7 @@ impl ControlLine {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - No remaining content to parse
     /// - The next entry isn't a KEY=VALUE mapping
     /// - `quoted` is `true` but the value isn't quoted
@@ -916,7 +916,7 @@ impl ControlLine {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - No remaining content to parse
     /// - The next entry isn't a KEY=VALUE mapping
     /// - `quoted` is `true` but the value isn't quoted
@@ -1161,7 +1161,7 @@ impl SingleLineResponse {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - The message contains more than one line
     /// - The message is empty
     ///
@@ -1264,7 +1264,7 @@ impl SingleLineResponse {
 ///
 /// # Errors
 ///
-/// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+/// Returns [`Error::Protocol`] if:
 /// - The response type is not supported
 /// - The message doesn't conform to the expected format (for `SINGLELINE`)
 ///

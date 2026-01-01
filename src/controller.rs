@@ -1,7 +1,7 @@
 //! High-level controller API for Tor control protocol interaction.
 //!
 //! This module provides the primary interface for interacting with Tor's control
-//! protocol. The [`Controller`] type wraps a [`ControlSocket`](crate::socket::ControlSocket)
+//! protocol. The [`Controller`] type wraps a [`ControlSocket`]
 //! and provides high-level methods for common operations like authentication,
 //! circuit management, stream handling, and event subscription.
 //!
@@ -107,7 +107,7 @@
 //! # See Also
 //!
 //! - [`socket`](crate::socket): Low-level socket communication
-//! - [`auth`](crate::auth): Authentication implementation details
+//! - [`auth`]: Authentication implementation details
 //! - [`events`](crate::events): Event types for subscription
 //! - Python Stem's `Controller` class for equivalent functionality
 
@@ -335,7 +335,7 @@ pub struct RelayInfo {
 ///
 /// - [`Controller::get_circuits`]: Retrieve all active circuits
 /// - [`Controller::new_circuit`]: Create a new circuit
-/// - [`CircStatus`](crate::CircStatus): Circuit status enumeration
+/// - [`CircStatus`]: Circuit status enumeration
 #[derive(Debug, Clone)]
 pub struct Circuit {
     /// Unique identifier for this circuit.
@@ -343,7 +343,7 @@ pub struct Circuit {
 
     /// Current status of the circuit.
     ///
-    /// See [`CircStatus`](crate::CircStatus) for possible values.
+    /// See [`CircStatus`] for possible values.
     pub status: CircStatus,
 
     /// Ordered list of relays in the circuit path.
@@ -407,7 +407,7 @@ pub struct Circuit {
 ///
 /// - [`Controller::get_streams`]: Retrieve all active streams
 /// - [`Controller::attach_stream`]: Attach a stream to a circuit
-/// - [`StreamStatus`](crate::StreamStatus): Stream status enumeration
+/// - [`StreamStatus`]: Stream status enumeration
 #[derive(Debug, Clone)]
 pub struct Stream {
     /// Unique identifier for this stream.
@@ -415,7 +415,7 @@ pub struct Stream {
 
     /// Current status of the stream.
     ///
-    /// See [`StreamStatus`](crate::StreamStatus) for possible values.
+    /// See [`StreamStatus`] for possible values.
     pub status: StreamStatus,
 
     /// The circuit this stream is attached to, if any.
@@ -438,7 +438,7 @@ pub struct Stream {
 /// A high-level interface for interacting with Tor's control protocol.
 ///
 /// The `Controller` provides the primary API for controlling a Tor process.
-/// It wraps a [`ControlSocket`](crate::socket::ControlSocket) and provides
+/// It wraps a [`ControlSocket`] and provides
 /// typed methods for common operations like authentication, circuit management,
 /// and event subscription.
 ///
@@ -539,7 +539,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Socket`](crate::Error::Socket) if:
+    /// Returns [`Error::Socket`] if:
     /// - The connection is refused (Tor not running or port incorrect)
     /// - Network is unreachable
     /// - Connection times out
@@ -583,7 +583,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Socket`](crate::Error::Socket) if:
+    /// Returns [`Error::Socket`] if:
     /// - The socket file doesn't exist
     /// - Permission denied accessing the socket
     /// - The socket is not a valid Unix domain socket
@@ -666,7 +666,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Authentication`](crate::Error::Authentication) with specific reason:
+    /// Returns [`Error::Authentication`] with specific reason:
     ///
     /// - [`AuthError::NoMethods`](crate::AuthError::NoMethods) - No compatible auth methods available
     /// - [`AuthError::IncorrectPassword`](crate::AuthError::IncorrectPassword) - PASSWORD auth failed
@@ -699,7 +699,7 @@ impl Controller {
     ///
     /// # See Also
     ///
-    /// - [`auth`](crate::auth): Authentication implementation details
+    /// - [`auth`]: Authentication implementation details
     /// - [`AuthError`](crate::AuthError): Authentication error types
     pub async fn authenticate(&mut self, password: Option<&str>) -> Result<(), Error> {
         auth::authenticate(&mut self.socket, password).await
@@ -728,7 +728,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The key is unrecognized
     /// - The information is not available
     /// - Tor returns an error response
@@ -815,7 +815,7 @@ impl Controller {
     ///
     /// # See Also
     ///
-    /// - [`Version`](crate::version::Version): Version type with comparison support
+    /// - [`Version`]: Version type with comparison support
     pub async fn get_version(&mut self) -> Result<Version, Error> {
         let version_str = self.get_info("version").await?;
         Version::parse(&version_str)
@@ -865,7 +865,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The configuration option is unrecognized
     /// - Tor returns an error response
     ///
@@ -944,7 +944,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The configuration option is unrecognized
     /// - The value is invalid for this option
     /// - The option cannot be changed at runtime
@@ -1006,7 +1006,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The configuration option is unrecognized
     /// - The option cannot be reset at runtime
     /// - Tor returns an error response
@@ -1052,7 +1052,7 @@ impl Controller {
     ///
     /// # Arguments
     ///
-    /// * `signal` - The signal to send (see [`Signal`](crate::Signal))
+    /// * `signal` - The signal to send (see [`Signal`])
     ///
     /// # Available Signals
     ///
@@ -1071,7 +1071,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The signal is not recognized
     /// - The signal cannot be sent (e.g., rate-limited NEWNYM)
     /// - Tor returns an error response
@@ -1105,7 +1105,7 @@ impl Controller {
     ///
     /// # See Also
     ///
-    /// - [`Signal`](crate::Signal): Signal enumeration
+    /// - [`Signal`]: Signal enumeration
     pub async fn signal(&mut self, signal: Signal) -> Result<(), Error> {
         let command = format!("SIGNAL {}", signal);
         self.socket.send(&command).await?;
@@ -1182,7 +1182,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - A specified relay is unknown or unavailable
     /// - The path is invalid (e.g., too short)
     /// - Circuit creation fails
@@ -1252,10 +1252,10 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidArguments`](crate::Error::InvalidArguments) if:
+    /// Returns [`Error::InvalidArguments`] if:
     /// - The path is empty
     ///
-    /// Returns [`Error::CircuitExtensionFailed`](crate::Error::CircuitExtensionFailed) if:
+    /// Returns [`Error::CircuitExtensionFailed`] if:
     /// - The circuit doesn't exist
     /// - The circuit is in a state that doesn't allow extension
     /// - A specified relay is unknown or unavailable
@@ -1308,7 +1308,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The circuit doesn't exist
     /// - The circuit is already closed
     /// - Tor returns an error response
@@ -1407,7 +1407,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The stream doesn't exist
     /// - The circuit doesn't exist
     /// - The stream is not in an attachable state
@@ -1475,7 +1475,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The stream doesn't exist
     /// - The stream is already closed
     /// - Tor returns an error response
@@ -1539,7 +1539,7 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - The address format is invalid
     /// - The mapping cannot be created
     /// - Tor returns an error response
@@ -1604,15 +1604,15 @@ impl Controller {
     /// # Event Types
     ///
     /// Common event types include:
-    /// - [`EventType::Circ`](crate::EventType::Circ) - Circuit status changes
-    /// - [`EventType::Stream`](crate::EventType::Stream) - Stream status changes
-    /// - [`EventType::Bw`](crate::EventType::Bw) - Bandwidth usage
-    /// - [`EventType::Notice`](crate::EventType::Notice) - Notice-level log messages
-    /// - [`EventType::Warn`](crate::EventType::Warn) - Warning-level log messages
+    /// - [`EventType::Circ`] - Circuit status changes
+    /// - [`EventType::Stream`] - Stream status changes
+    /// - [`EventType::Bw`] - Bandwidth usage
+    /// - [`EventType::Notice`] - Notice-level log messages
+    /// - [`EventType::Warn`] - Warning-level log messages
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - An event type is not recognized
     /// - Tor returns an error response
     ///
@@ -1654,7 +1654,7 @@ impl Controller {
     /// # See Also
     ///
     /// - [`recv_event`](Self::recv_event): Receive subscribed events
-    /// - [`EventType`](crate::EventType): Available event types
+    /// - [`EventType`]: Available event types
     /// - [`events`](crate::events): Event parsing module
     pub async fn set_events(&mut self, events: &[EventType]) -> Result<(), Error> {
         let event_names: Vec<String> = events.iter().map(|e| e.to_string()).collect();
@@ -1688,10 +1688,10 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Protocol`](crate::Error::Protocol) if:
+    /// Returns [`Error::Protocol`] if:
     /// - The received message is not an event (status code != 650)
     ///
-    /// Returns [`Error::Socket`](crate::Error::Socket) if:
+    /// Returns [`Error::Socket`] if:
     /// - The connection is closed
     /// - A network error occurs
     ///
@@ -1725,7 +1725,7 @@ impl Controller {
     /// # See Also
     ///
     /// - [`set_events`](Self::set_events): Subscribe to events
-    /// - [`ParsedEvent`](crate::events::ParsedEvent): Event types
+    /// - [`ParsedEvent`]: Event types
     pub async fn recv_event(&mut self) -> Result<ParsedEvent, Error> {
         let response = if let Some(buffered) = self.event_buffer.pop() {
             buffered
@@ -1766,10 +1766,10 @@ impl Controller {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::OperationFailed`](crate::Error::OperationFailed) if:
+    /// Returns [`Error::OperationFailed`] if:
     /// - Tor returns an error response
     ///
-    /// Returns [`Error::Socket`](crate::Error::Socket) if:
+    /// Returns [`Error::Socket`] if:
     /// - The connection is closed
     /// - A network error occurs
     ///
