@@ -9,16 +9,19 @@ stem-rs brings the power of Python's Stem library to Rust with type-safe, async-
 ## Features
 
 ### Control Protocol
+
 - Full Tor control protocol implementation over TCP and Unix sockets
 - Async I/O powered by Tokio
 - Automatic reconnection handling
 
 ### Authentication
+
 - All methods supported: SAFECOOKIE, COOKIE, PASSWORD, NONE
 - Automatic method detection
 - Secure credential handling with constant-time comparison
 
 ### Controller API
+
 - Query configuration and status
 - Send signals (NEWNYM, RELOAD, SHUTDOWN, etc.)
 - Circuit management (create, extend, close)
@@ -27,6 +30,7 @@ stem-rs brings the power of Python's Stem library to Rust with type-safe, async-
 - Address mapping for custom routing
 
 ### Descriptor Parsing
+
 - Server descriptors
 - Microdescriptors
 - Consensus documents
@@ -36,12 +40,14 @@ stem-rs brings the power of Python's Stem library to Rust with type-safe, async-
 - Remote descriptor downloading
 
 ### Event Handling
+
 - Real-time event subscription
 - Strongly-typed event structs
 - Bandwidth, circuit, stream, and log events
 - Hidden service events
 
 ### Additional Modules
+
 - Exit policy parsing and evaluation (IPv4/IPv6, CIDR, port ranges)
 - Version parsing and comparison
 - Interactive control interpreter

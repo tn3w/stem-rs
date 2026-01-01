@@ -406,18 +406,18 @@ if version >= min_version {
 
 ## 📦 Module Reference
 
-| Module                                                     | Description                                                       |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`controller`](https://stem.tn3w.dev/docs/controller/)     | High-level Tor control interface                                  |
-| [`socket`](https://stem.tn3w.dev/docs/socket/)             | Low-level control socket communication                            |
-| [`auth`](https://stem.tn3w.dev/docs/auth/)                 | Authentication methods and protocol info                          |
-| [`descriptor`](https://stem.tn3w.dev/docs/descriptor/)     | Tor descriptor parsing (server, micro, consensus, hidden service) |
-| [`events`](https://stem.tn3w.dev/docs/events/)             | Event types and real-time handling                                |
-| [`exit_policy`](https://stem.tn3w.dev/docs/exit_policy/)   | Exit policy parsing and evaluation                                |
-| [`version`](https://stem.tn3w.dev/docs/version/)           | Version parsing and comparison                                    |
-| [`client`](https://stem.tn3w.dev/docs/client/)             | Direct ORPort relay communication                                 |
-| [`interpreter`](https://stem.tn3w.dev/docs/interpreter/)   | Interactive Tor control interpreter                               |
-| [`util`](https://stem.tn3w.dev/docs/util/)                 | Validation utilities (fingerprints, nicknames, etc.)              |
+| Module                                                   | Description                                                       |
+| -------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`controller`](https://stem.tn3w.dev/docs/controller/)   | High-level Tor control interface                                  |
+| [`socket`](https://stem.tn3w.dev/docs/socket/)           | Low-level control socket communication                            |
+| [`auth`](https://stem.tn3w.dev/docs/auth/)               | Authentication methods and protocol info                          |
+| [`descriptor`](https://stem.tn3w.dev/docs/descriptor/)   | Tor descriptor parsing (server, micro, consensus, hidden service) |
+| [`events`](https://stem.tn3w.dev/docs/events/)           | Event types and real-time handling                                |
+| [`exit_policy`](https://stem.tn3w.dev/docs/exit_policy/) | Exit policy parsing and evaluation                                |
+| [`version`](https://stem.tn3w.dev/docs/version/)         | Version parsing and comparison                                    |
+| [`client`](https://stem.tn3w.dev/docs/client/)           | Direct ORPort relay communication                                 |
+| [`interpreter`](https://stem.tn3w.dev/docs/interpreter/) | Interactive Tor control interpreter                               |
+| [`util`](https://stem.tn3w.dev/docs/util/)               | Validation utilities (fingerprints, nicknames, etc.)              |
 
 ## 🔒 Security
 

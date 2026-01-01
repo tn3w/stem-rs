@@ -102,26 +102,29 @@ jobs:
           DATE=$(date +%Y%m%d)
           LATEST_NAME="stem-rs-${VERSION}-${DATE}-${COMMIT}"
           
-          FILE_ROWS=""
+          LATEST_ROWS=""
+          OTHER_ROWS=""
+          
           for file in $(ls -t docs/dist/*.tar.gz docs/dist/*.zip 2>/dev/null | grep -v latest); do
             filename=$(basename "$file")
             size=$(du -h "$file" | cut -f1)
-            date=$(stat -c %y "$file" | cut -d' ' -f1)
+            filedate=$(stat -c %y "$file" | cut -d' ' -f1)
             
             if [[ "$filename" == *.tar.gz ]]; then
-              icon="📄"
+              icon="�"
             else
               icon="📁"
             fi
             
             if [[ "$filename" == "${LATEST_NAME}."* ]]; then
               badge="<span class=\"dist-latest-badge\">latest</span>"
+              LATEST_ROWS="${LATEST_ROWS}<div class=\"dist-row\"><div class=\"dist-file\"><span class=\"dist-file-icon\">${icon}</span><a href=\"${filename}\" class=\"dist-file-link\">${filename}</a>${badge}</div><span class=\"dist-size\">${size}</span><span class=\"dist-date\">${filedate}</span></div>\n"
             else
-              badge=""
+              OTHER_ROWS="${OTHER_ROWS}<div class=\"dist-row\"><div class=\"dist-file\"><span class=\"dist-file-icon\">${icon}</span><a href=\"${filename}\" class=\"dist-file-link\">${filename}</a></div><span class=\"dist-size\">${size}</span><span class=\"dist-date\">${filedate}</span></div>\n"
             fi
-            
-            FILE_ROWS="${FILE_ROWS}<div class=\"dist-row\"><div class=\"dist-file\"><span class=\"dist-file-icon\">${icon}</span><a href=\"${filename}\" class=\"dist-file-link\">${filename}</a>${badge}</div><span class=\"dist-size\">${size}</span><span class=\"dist-date\">${date}</span></div>\n"
           done
+          
+          FILE_ROWS="${LATEST_ROWS}${OTHER_ROWS}"
           
           cp docs-src/dist-template.html docs/dist/index.html
           sed -i "s|<!-- FILE_LIST_PLACEHOLDER -->|${FILE_ROWS}|g" docs/dist/index.html
