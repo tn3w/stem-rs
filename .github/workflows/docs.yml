@@ -35,7 +35,7 @@ jobs:
           mkdir -p docs
           cp -r docs-src/* docs/
           mkdir -p docs/docs
-          cp -r target/doc/* docs/docs/
+          cp -r target/doc/stem_rs/* docs/docs/
           
           cp docs-src/styles/rustdoc-dark.css docs/docs/rustdoc-dark.css
           
@@ -49,8 +49,8 @@ jobs:
               rel_path="./"
             fi
             sed -i "s|</head>|<link rel=\"stylesheet\" href=\"${rel_path}rustdoc-dark.css\"></head>|g" "$file"
-            sed -i "s|href=\"${rel_path}stem_rs/index.html\"|href=\"/\"|g" "$file"
-            sed -i "s|href=\"../stem_rs/index.html\"|href=\"/\"|g" "$file"
+            sed -i "s|href=\"${rel_path}index.html\"|href=\"/\"|g" "$file"
+            sed -i "s|href=\"../index.html\"|href=\"/\"|g" "$file"
             sed -i "s|href=\"/index.html\"|href=\"/\"|g" "$file"
           done
 

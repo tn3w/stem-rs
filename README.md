@@ -9,7 +9,7 @@
   <a href="https://crates.io/crates/stem-rs">
     <img src="https://img.shields.io/crates/v/stem-rs?style=for-the-badge&logo=rust&logoColor=white&color=f74c00" alt="Crates.io">
   </a>
-  <a href="https://stem.tn3w.dev/docs/stem_rs/">
+  <a href="https://stem.tn3w.dev/docs/">
     <img src="https://img.shields.io/docsrs/stem-rs?style=for-the-badge&logo=docs.rs&logoColor=white" alt="docs.rs">
   </a>
   <a href="https://github.com/tn3w/stem-rs/blob/master/LICENSE">
@@ -31,7 +31,7 @@
 
 <p align="center">
   <a href="https://stem.tn3w.dev">🌐 Website</a> •
-  <a href="https://stem.tn3w.dev/docs/stem_rs/">📚 Documentation</a> •
+  <a href="https://stem.tn3w.dev/docs/">📚 Documentation</a> •
   <a href="#-quick-start">🚀 Quick Start</a> •
   <a href="#-examples">💡 Examples</a>
 </p>
@@ -406,18 +406,18 @@ if version >= min_version {
 
 ## 📦 Module Reference
 
-| Module                                                           | Description                                                       |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`controller`](https://stem.tn3w.dev/docs/stem_rs/controller/)   | High-level Tor control interface                                  |
-| [`socket`](https://stem.tn3w.dev/docs/stem_rs/socket/)           | Low-level control socket communication                            |
-| [`auth`](https://stem.tn3w.dev/docs/stem_rs/auth/)               | Authentication methods and protocol info                          |
-| [`descriptor`](https://stem.tn3w.dev/docs/stem_rs/descriptor/)   | Tor descriptor parsing (server, micro, consensus, hidden service) |
-| [`events`](https://stem.tn3w.dev/docs/stem_rs/events/)           | Event types and real-time handling                                |
-| [`exit_policy`](https://stem.tn3w.dev/docs/stem_rs/exit_policy/) | Exit policy parsing and evaluation                                |
-| [`version`](https://stem.tn3w.dev/docs/stem_rs/version/)         | Version parsing and comparison                                    |
-| [`client`](https://stem.tn3w.dev/docs/stem_rs/client/)           | Direct ORPort relay communication                                 |
-| [`interpreter`](https://stem.tn3w.dev/docs/stem_rs/interpreter/) | Interactive Tor control interpreter                               |
-| [`util`](https://stem.tn3w.dev/docs/stem_rs/util/)               | Validation utilities (fingerprints, nicknames, etc.)              |
+| Module                                                     | Description                                                       |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`controller`](https://stem.tn3w.dev/docs/controller/)     | High-level Tor control interface                                  |
+| [`socket`](https://stem.tn3w.dev/docs/socket/)             | Low-level control socket communication                            |
+| [`auth`](https://stem.tn3w.dev/docs/auth/)                 | Authentication methods and protocol info                          |
+| [`descriptor`](https://stem.tn3w.dev/docs/descriptor/)     | Tor descriptor parsing (server, micro, consensus, hidden service) |
+| [`events`](https://stem.tn3w.dev/docs/events/)             | Event types and real-time handling                                |
+| [`exit_policy`](https://stem.tn3w.dev/docs/exit_policy/)   | Exit policy parsing and evaluation                                |
+| [`version`](https://stem.tn3w.dev/docs/version/)           | Version parsing and comparison                                    |
+| [`client`](https://stem.tn3w.dev/docs/client/)             | Direct ORPort relay communication                                 |
+| [`interpreter`](https://stem.tn3w.dev/docs/interpreter/)   | Interactive Tor control interpreter                               |
+| [`util`](https://stem.tn3w.dev/docs/util/)                 | Validation utilities (fingerprints, nicknames, etc.)              |
 
 ## 🔒 Security
 
@@ -492,7 +492,7 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 
 <p align="center">
   <a href="https://stem.tn3w.dev">Website</a> •
-  <a href="https://stem.tn3w.dev/docs/stem_rs/">Documentation</a> •
+  <a href="https://stem.tn3w.dev/docs/">Documentation</a> •
   <a href="https://crates.io/crates/stem-rs">crates.io</a> •
   <a href="https://github.com/tn3w/stem-rs">GitHub</a> •
   <a href="https://stem.torproject.org/">Python Stem</a>
