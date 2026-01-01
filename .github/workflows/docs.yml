@@ -53,6 +53,7 @@ jobs:
             sed -i "s|href=\"${rel_path}index.html\"|href=\"/\"|g" "$file"
             sed -i "s|href=\"../index.html\"|href=\"/\"|g" "$file"
             sed -i "s|href=\"/index.html\"|href=\"/\"|g" "$file"
+            sed -i 's|href="[^"]*stem_rs/index\.html"|href="/"|g' "$file"
           done
 
       - name: Upload artifact
