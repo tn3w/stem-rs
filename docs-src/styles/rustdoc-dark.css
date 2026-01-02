@@ -138,7 +138,7 @@ li code {
     font-size: 0.85em !important;
 }
 
-.rust-eendered code,
+.rust-rendered code,
 pre.rust code,
 .example-wrap code {
     background-color: transparent !important;

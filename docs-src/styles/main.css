@@ -118,7 +118,7 @@ header nav {
 
 @media (max-width: 640px) {
     .nav-hide-mobile {
-        display: none;
+        display: none !important;
     }
 }
 
