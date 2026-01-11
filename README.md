@@ -29,6 +29,7 @@
 <p align="center">
   <a href="https://stem.tn3w.dev">🌐 Website</a> •
   <a href="https://stem.tn3w.dev/docs/">📚 Documentation</a> •
+  <a href="https://stem.tn3w.dev/tutorials">📖 Tutorials</a> •
   <a href="#-quick-start">🚀 Quick Start</a> •
   <a href="#-examples">💡 Examples</a>
 </p>
@@ -500,6 +501,7 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 <p align="center">
   <a href="https://stem.tn3w.dev">Website</a> •
   <a href="https://stem.tn3w.dev/docs/">Documentation</a> •
+  <a href="https://stem.tn3w.dev/tutorials">Tutorials</a> •
   <a href="https://crates.io/crates/stem-rs">crates.io</a> •
   <a href="https://github.com/tn3w/stem-rs">GitHub</a> •
   <a href="https://stem.torproject.org/">Python Stem</a>
