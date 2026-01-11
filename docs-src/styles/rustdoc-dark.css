@@ -97,13 +97,11 @@ nav.sidebar {
     color: var(--rustdoc-text) !important;
     letter-spacing: -0.02em !important;
 }
-
 .sidebar-crate h2 a {
     color: var(--rustdoc-text) !important;
     text-decoration: none !important;
     transition: color var(--rustdoc-duration-fast) var(--rustdoc-ease) !important;
 }
-
 .sidebar-crate h2 a:hover {
     color: var(--rustdoc-accent) !important;
 }
@@ -176,7 +174,9 @@ nav.sidebar {
 .rustdoc .content {
     background-color: var(--rustdoc-bg) !important;
     padding: 32px 40px !important;
-    max-width: 900px !important;
+}
+.width-limiter {
+    max-width: 100% !important;
 }
 h1,
 h2,
@@ -357,7 +357,6 @@ pre code,
 .question-mark {
     color: var(--rustdoc-code-keyword) !important;
 }
-
 .item-decl {
     background-color: var(--rustdoc-bg-sunken) !important;
     border: 1px solid var(--rustdoc-border) !important;
