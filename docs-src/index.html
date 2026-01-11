@@ -5,34 +5,39 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta
             name="description"
-            content="stem-rs is a Rust implementation of Stem for Tor control protocol interaction. Connect to Tor, authenticate, query information, and handle events with idiomatic Rust APIs."
+            content="stem-rs is a Rust library for Tor control protocol. Connect, authenticate, query information, and handle events with type-safe async APIs."
         />
         <meta
             name="keywords"
-            content="stem-rs, Tor, Rust, control protocol, privacy, anonymity, networking, stem"
+            content="stem-rs, Tor, Rust, control protocol, privacy, anonymity, networking"
         />
-
-        <meta property="og:title" content="stem-rs - Rust Tor Control Protocol Library" />
+        <meta property="og:title" content="stem-rs — Tor Control Protocol for Rust" />
         <meta
             property="og:description"
-            content="A Rust implementation of Stem for Tor control protocol interaction. Idiomatic APIs for control socket communication, authentication, descriptor parsing, and event handling."
+            content="Type-safe, async-first Rust library for Tor control protocol interaction."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://stem.tn3w.dev/" />
-
-        <title>stem-rs - Rust Tor Control Protocol Library</title>
-
+        <title>stem-rs — Tor Control Protocol for Rust</title>
         <link rel="stylesheet" href="styles/theme.css" />
         <link rel="stylesheet" href="styles/main.css" />
     </head>
     <body>
         <header>
             <nav class="container">
-                <a href="/" class="nav-logo">stem-rs</a>
+                <a href="/" class="nav-brand">
+                    <span class="nav-logo">stem-rs</span>
+                    <span class="nav-version">VERSION</span>
+                </a>
                 <div class="nav-links">
                     <a href="#features" class="nav-hide-mobile">Features</a>
-                    <a href="#examples" class="nav-hide-mobile">Examples</a>
-                    <a href="docs/">
+                    <a href="/examples" class="nav-hide-mobile">Tutorials</a>
+                    <a href="docs/">Docs</a>
+                    <a
+                        href="https://crates.io/crates/stem-rs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
                         <svg
                             width="16"
                             height="16"
@@ -43,12 +48,12 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                             <path
-                                d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
                             />
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                            <line x1="12" y1="22.08" x2="12" y2="12" />
                         </svg>
-                        Docs
                     </a>
                     <a
                         href="https://github.com/tn3w/stem-rs"
@@ -60,7 +65,6 @@
                                 d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
                             />
                         </svg>
-                        GitHub
                     </a>
                 </div>
             </nav>
@@ -69,89 +73,128 @@
         <main>
             <section id="hero">
                 <div class="container">
-                    <div class="hero-content">
-                        <div class="hero-badge">
-                            <span>🦀</span>
-                            <span>Built with Rust</span>
-                        </div>
-                        <h1 class="hero-title">stem-rs</h1>
-                        <p class="hero-tagline">
-                            The complete Rust library for Tor control protocol. Build
-                            privacy-focused applications with type-safe, async-first APIs.
-                        </p>
-                        <div class="hero-install">
-                            <span class="hero-install-prompt">$</span>
-                            <code>cargo add stem-rs</code>
-                        </div>
-                        <div class="hero-buttons">
-                            <a href="docs/" class="btn btn-primary">
-                                <svg
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                                    <path
-                                        d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
-                                    />
-                                </svg>
-                                <span>Documentation</span>
-                            </a>
-                            <a
-                                href="https://github.com/tn3w/stem-rs"
-                                class="btn btn-secondary"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path
-                                        d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
-                                    />
-                                </svg>
-                                <span>GitHub</span>
-                            </a>
-                            <a
-                                href="https://crates.io/crates/stem-rs"
-                                class="btn btn-secondary"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <svg
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path
-                                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
-                                    />
-                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                                    <line x1="12" y1="22.08" x2="12" y2="12" />
-                                </svg>
-                                <span>crates.io</span>
-                            </a>
-                        </div>
-                        <div class="hero-stats">
-                            <div class="stat">
-                                <div class="stat-value">100%</div>
-                                <div class="stat-label">Safe Rust</div>
+                    <div class="hero-grid">
+                        <div class="hero-content">
+                            <div class="hero-badge">
+                                <span class="hero-badge-dot"></span>
+                                <span>Async-first • Type-safe • Tokio runtime</span>
                             </div>
-                            <div class="stat">
-                                <div class="stat-value">Async</div>
-                                <div class="stat-label">Tokio Runtime</div>
+                            <h1 class="hero-title">
+                                Tor control protocol<br />
+                                <span class="hero-title-accent">for Rust</span>
+                            </h1>
+                            <p class="hero-description">
+                                A complete Rust implementation of the Tor control protocol. Connect
+                                to Tor, authenticate with any method, query network information, and
+                                subscribe to real-time events.
+                            </p>
+                            <button
+                                class="hero-install"
+                                data-copy="cargo add stem-rs"
+                                title="Click to copy"
+                            >
+                                <span class="hero-install-prompt">$</span>
+                                <code>cargo add stem-rs</code>
+                                <span class="hero-install-feedback">Copied!</span>
+                            </button>
+                            <div class="hero-actions">
+                                <a href="docs/" class="btn btn-primary">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                        <path
+                                            d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+                                        />
+                                    </svg>
+                                    Documentation
+                                </a>
+                                <a
+                                    href="https://github.com/tn3w/stem-rs"
+                                    class="btn btn-secondary"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+                                        />
+                                    </svg>
+                                    GitHub
+                                </a>
+                                <a
+                                    href="https://crates.io/crates/stem-rs"
+                                    class="btn btn-secondary"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path
+                                            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                                        />
+                                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                                    </svg>
+                                    crates.io
+                                </a>
                             </div>
-                            <div class="stat">
-                                <div class="stat-value">Full</div>
-                                <div class="stat-label">Stem Parity</div>
+                        </div>
+                        <div class="hero-demo">
+                            <div class="demo-window">
+                                <div class="demo-header">
+                                    <div class="demo-dots">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                    <div class="demo-title">tor_monitor.rs</div>
+                                </div>
+                                <div class="demo-code">
+                                    <pre id="typing-container"><code id="typing-code"></code><span id="typing-cursor" class="demo-cursor"></span></pre>
+                                    <pre class="noscript-code" id="static-demo-code"><code><span class="code-keyword">use</span> stem_rs::{Controller, Signal, EventType};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -&gt; <span class="code-type">Result</span>&lt;(), stem_rs::Error&gt; {
+    <span class="code-comment">// Connect to Tor control port</span>
+    <span class="code-keyword">let mut</span> ctrl = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+
+    <span class="code-comment">// Authenticate automatically</span>
+    ctrl.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+
+    <span class="code-comment">// Get Tor version</span>
+    <span class="code-keyword">let</span> version = ctrl.<span class="code-function">get_version</span>().<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Tor {}"</span>, version);
+
+    <span class="code-comment">// Subscribe to events</span>
+    ctrl.<span class="code-function">set_events</span>(&amp;[
+        EventType::Bw,
+        EventType::Circ,
+    ]).<span class="code-keyword">await</span>?;
+
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -162,10 +205,10 @@
                 <div class="container">
                     <div class="section-header">
                         <div class="section-label">Capabilities</div>
-                        <h2 class="section-title">Everything you need</h2>
-                        <p class="section-subtitle">
+                        <h2 class="section-title">Everything you need to control Tor</h2>
+                        <p class="section-description">
                             A complete toolkit for building Tor-integrated applications with
-                            idiomatic Rust patterns.
+                            idiomatic Rust patterns and comprehensive type safety.
                         </p>
                     </div>
                     <div class="features-grid">
@@ -173,34 +216,26 @@
                             <div class="feature-icon">🔌</div>
                             <h3>Control Socket</h3>
                             <p>
-                                Connect to Tor via TCP or Unix domain sockets. Async-first design
-                                with full tokio integration for high-performance applications.
+                                Connect to Tor via TCP or Unix domain sockets. Full async I/O with
+                                Tokio integration for high-performance applications.
                             </p>
-                            <div class="feature-list">
-                                <span
-                                    class="feature-tag"
-                                    data-href="docs/socket/struct.ControlSocket.html"
-                                    >TCP</span
-                                >
-                                <span
-                                    class="feature-tag"
-                                    data-href="docs/socket/struct.ControlSocket.html"
-                                    >Unix Socket</span
-                                >
-                                <span class="feature-tag" data-href="docs/socket/">Async I/O</span>
+                            <div class="feature-tags">
+                                <span class="feature-tag">TCP</span>
+                                <span class="feature-tag">Unix Socket</span>
+                                <span class="feature-tag">Async I/O</span>
                             </div>
                         </a>
                         <a href="docs/auth/" class="feature-card">
                             <div class="feature-icon">🔐</div>
                             <h3>Authentication</h3>
                             <p>
-                                All authentication methods with automatic detection. Secure handling
-                                of credentials with constant-time comparison.
+                                All authentication methods with automatic detection. Secure
+                                credential handling with constant-time comparison.
                             </p>
-                            <div class="feature-list">
-                                <span class="feature-tag" data-href="docs/auth/">SAFECOOKIE</span>
-                                <span class="feature-tag" data-href="docs/auth/">COOKIE</span>
-                                <span class="feature-tag" data-href="docs/auth/">PASSWORD</span>
+                            <div class="feature-tags">
+                                <span class="feature-tag">SAFECOOKIE</span>
+                                <span class="feature-tag">COOKIE</span>
+                                <span class="feature-tag">PASSWORD</span>
                             </div>
                         </a>
                         <a href="docs/controller/" class="feature-card">
@@ -210,14 +245,10 @@
                                 High-level interface for Tor interaction. Query configuration, send
                                 signals, manage circuits, and control hidden services.
                             </p>
-                            <div class="feature-list">
-                                <span class="feature-tag" data-href="docs/enum.Signal.html"
-                                    >Signals</span
-                                >
-                                <span class="feature-tag" data-href="docs/controller/"
-                                    >Circuits</span
-                                >
-                                <span class="feature-tag" data-href="docs/controller/">Config</span>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Signals</span>
+                                <span class="feature-tag">Circuits</span>
+                                <span class="feature-tag">Config</span>
                             </div>
                         </a>
                         <a href="docs/descriptor/" class="feature-card">
@@ -227,16 +258,10 @@
                                 Complete parsing for all Tor descriptor types. Server, micro,
                                 consensus, extra-info, and hidden service descriptors.
                             </p>
-                            <div class="feature-list">
-                                <span class="feature-tag" data-href="docs/descriptor/server/"
-                                    >Server</span
-                                >
-                                <span class="feature-tag" data-href="docs/descriptor/consensus/"
-                                    >Consensus</span
-                                >
-                                <span class="feature-tag" data-href="docs/descriptor/hidden/"
-                                    >Hidden Service</span
-                                >
+                            <div class="feature-tags">
+                                <span class="feature-tag">Server</span>
+                                <span class="feature-tag">Consensus</span>
+                                <span class="feature-tag">Hidden Service</span>
                             </div>
                         </a>
                         <a href="docs/events/" class="feature-card">
@@ -246,16 +271,10 @@
                                 Subscribe to real-time Tor events. Monitor bandwidth, circuit
                                 status, stream events, and log messages as they happen.
                             </p>
-                            <div class="feature-list">
-                                <span class="feature-tag" data-href="docs/enum.EventType.html"
-                                    >Bandwidth</span
-                                >
-                                <span class="feature-tag" data-href="docs/enum.EventType.html"
-                                    >Circuits</span
-                                >
-                                <span class="feature-tag" data-href="docs/enum.EventType.html"
-                                    >Streams</span
-                                >
+                            <div class="feature-tags">
+                                <span class="feature-tag">Bandwidth</span>
+                                <span class="feature-tag">Circuits</span>
+                                <span class="feature-tag">Streams</span>
                             </div>
                         </a>
                         <a href="docs/exit_policy/" class="feature-card">
@@ -265,12 +284,10 @@
                                 Parse and evaluate exit policies. Determine what traffic a relay
                                 allows and make informed routing decisions.
                             </p>
-                            <div class="feature-list">
-                                <span class="feature-tag" data-href="docs/exit_policy/">Parse</span>
-                                <span class="feature-tag" data-href="docs/exit_policy/"
-                                    >Evaluate</span
-                                >
-                                <span class="feature-tag" data-href="docs/exit_policy/">Match</span>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Parse</span>
+                                <span class="feature-tag">Evaluate</span>
+                                <span class="feature-tag">Match</span>
                             </div>
                         </a>
                     </div>
@@ -280,83 +297,100 @@
             <section id="examples">
                 <div class="container">
                     <div class="section-header">
-                        <div class="section-label">Get Started</div>
-                        <h2 class="section-title">Simple, powerful APIs</h2>
-                        <p class="section-subtitle">
-                            Get up and running in minutes with clear, well-documented code examples.
+                        <div class="section-label">Quick Start</div>
+                        <h2 class="section-title">Up and running in minutes</h2>
+                        <p class="section-description">
+                            Clear, well-documented examples to get you started with the most common
+                            use cases.
                         </p>
                     </div>
                     <div class="examples-grid">
                         <div class="example-card">
                             <div class="example-header">
-                                <div class="example-number">1</div>
-                                <div class="example-info">
-                                    <h3>Connect to Tor</h3>
-                                    <p>Establish connection and authenticate</p>
+                                <div class="example-step">1</div>
+                                <div class="example-meta">
+                                    <h3>Connect & Authenticate</h3>
+                                    <p>Establish connection to Tor control port</p>
                                 </div>
+                                <span class="example-lang">Rust</span>
                             </div>
-                            <pre><code class="language-rust"><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+                            <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
 
 <span class="code-macro">#[tokio::main]</span>
-<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -&gt; <span class="code-type">Result</span>&lt;(), Error&gt; {
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
     <span class="code-comment">// Connect to control port</span>
     <span class="code-keyword">let mut</span> ctrl = Controller::<span class="code-function">from_port</span>(
         <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
     ).<span class="code-keyword">await</span>?;
     
-    <span class="code-comment">// Auto-detect auth method</span>
+    <span class="code-comment">// Auto-detect authentication method</span>
     ctrl.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
     
-    <span class="code-function">println!</span>(<span class="code-string">"Connected!"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"Connected to Tor!"</span>);
     <span class="code-type">Ok</span>(())
 }</code></pre>
                         </div>
                         <div class="example-card">
                             <div class="example-header">
-                                <div class="example-number">2</div>
-                                <div class="example-info">
+                                <div class="example-step">2</div>
+                                <div class="example-meta">
                                     <h3>Query Information</h3>
-                                    <p>Get version, status, and metrics</p>
+                                    <p>Get version, status, and network metrics</p>
                                 </div>
+                                <span class="example-lang">Rust</span>
                             </div>
-                            <pre><code class="language-rust"><span class="code-comment">// Get Tor version</span>
-<span class="code-keyword">let</span> version = ctrl
-    .<span class="code-function">get_version</span>().<span class="code-keyword">await</span>?;
-<span class="code-function">println!</span>(<span class="code-string">"Tor {}"</span>, version);
+                            <pre><code><span class="code-comment">// Get Tor version</span>
+<span class="code-keyword">let</span> version = ctrl.<span class="code-function">get_version</span>().<span class="code-keyword">await</span>?;
+<span class="code-function">println!</span>(<span class="code-string">"Tor version: {}"</span>, version);
 
-<span class="code-comment">// Query traffic stats</span>
-<span class="code-keyword">let</span> read = ctrl
-    .<span class="code-function">get_info</span>(<span class="code-string">"traffic/read"</span>)
-    .<span class="code-keyword">await</span>?;
+<span class="code-comment">// Query traffic statistics</span>
+<span class="code-keyword">let</span> bytes_read = ctrl.<span class="code-function">get_info</span>(<span class="code-string">"traffic/read"</span>).<span class="code-keyword">await</span>?;
+<span class="code-keyword">let</span> bytes_written = ctrl.<span class="code-function">get_info</span>(<span class="code-string">"traffic/written"</span>).<span class="code-keyword">await</span>?;
 
-<span class="code-comment">// Get circuit status</span>
-<span class="code-keyword">let</span> circuits = ctrl
-    .<span class="code-function">get_info</span>(<span class="code-string">"circuit-status"</span>)
-    .<span class="code-keyword">await</span>?;</code></pre>
+<span class="code-comment">// Get active circuit status</span>
+<span class="code-keyword">let</span> circuits = ctrl.<span class="code-function">get_info</span>(<span class="code-string">"circuit-status"</span>).<span class="code-keyword">await</span>?;</code></pre>
                         </div>
                         <div class="example-card">
                             <div class="example-header">
-                                <div class="example-number">3</div>
-                                <div class="example-info">
-                                    <h3>Event Subscription</h3>
-                                    <p>Real-time bandwidth monitoring</p>
+                                <div class="example-step">3</div>
+                                <div class="example-meta">
+                                    <h3>Subscribe to Events</h3>
+                                    <p>Real-time bandwidth and circuit monitoring</p>
                                 </div>
+                                <span class="example-lang">Rust</span>
                             </div>
-                            <pre><code class="language-rust"><span class="code-keyword">use</span> stem_rs::EventType;
+                            <pre><code><span class="code-keyword">use</span> stem_rs::EventType;
 
-<span class="code-comment">// Subscribe to events</span>
+<span class="code-comment">// Subscribe to bandwidth and circuit events</span>
 ctrl.<span class="code-function">set_events</span>(&amp;[
     EventType::Bw,
     EventType::Circ,
 ]).<span class="code-keyword">await</span>?;
 
-<span class="code-comment">// Process events</span>
+<span class="code-comment">// Process events as they arrive</span>
 <span class="code-keyword">loop</span> {
-    <span class="code-keyword">let</span> event = ctrl
-        .<span class="code-function">recv_event</span>().<span class="code-keyword">await</span>?;
-    <span class="code-function">println!</span>(<span class="code-string">"{:?}"</span>, event);
+    <span class="code-keyword">let</span> event = ctrl.<span class="code-function">recv_event</span>().<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Event: {:?}"</span>, event);
 }</code></pre>
                         </div>
+                    </div>
+                    <div class="examples-cta">
+                        <a href="/tutorials" class="btn btn-primary">
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                            </svg>
+                            View All Tutorials
+                        </a>
                     </div>
                 </div>
             </section>
@@ -366,14 +400,14 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                     <div class="section-header">
                         <div class="section-label">API Reference</div>
                         <h2 class="section-title">Explore the modules</h2>
-                        <p class="section-subtitle">
-                            Comprehensive documentation with examples for every module.
+                        <p class="section-description">
+                            Comprehensive documentation with examples for every module and function.
                         </p>
                     </div>
                     <div class="docs-grid">
                         <a href="docs/controller/" class="docs-link">
-                            <span class="docs-link-icon">🎛️</span>
-                            <div class="docs-link-text">
+                            <span class="docs-link-icon">⚙️</span>
+                            <div class="docs-link-content">
                                 <div class="docs-link-title">Controller</div>
                                 <div class="docs-link-desc">High-level Tor control interface</div>
                             </div>
@@ -381,7 +415,7 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                         </a>
                         <a href="docs/socket/" class="docs-link">
                             <span class="docs-link-icon">🔌</span>
-                            <div class="docs-link-text">
+                            <div class="docs-link-content">
                                 <div class="docs-link-title">Socket</div>
                                 <div class="docs-link-desc">Low-level socket communication</div>
                             </div>
@@ -389,7 +423,7 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                         </a>
                         <a href="docs/descriptor/" class="docs-link">
                             <span class="docs-link-icon">📄</span>
-                            <div class="docs-link-text">
+                            <div class="docs-link-content">
                                 <div class="docs-link-title">Descriptor</div>
                                 <div class="docs-link-desc">Tor descriptor parsing</div>
                             </div>
@@ -397,7 +431,7 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                         </a>
                         <a href="docs/events/" class="docs-link">
                             <span class="docs-link-icon">📡</span>
-                            <div class="docs-link-text">
+                            <div class="docs-link-content">
                                 <div class="docs-link-title">Events</div>
                                 <div class="docs-link-desc">Event types and handling</div>
                             </div>
@@ -405,7 +439,7 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                         </a>
                         <a href="docs/exit_policy/" class="docs-link">
                             <span class="docs-link-icon">🚪</span>
-                            <div class="docs-link-text">
+                            <div class="docs-link-content">
                                 <div class="docs-link-title">Exit Policy</div>
                                 <div class="docs-link-desc">Policy parsing and evaluation</div>
                             </div>
@@ -413,7 +447,7 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                         </a>
                         <a href="docs/version/" class="docs-link">
                             <span class="docs-link-icon">🏷️</span>
-                            <div class="docs-link-text">
+                            <div class="docs-link-content">
                                 <div class="docs-link-title">Version</div>
                                 <div class="docs-link-desc">Version parsing and comparison</div>
                             </div>
@@ -422,8 +456,22 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                     </div>
                     <div class="docs-cta">
                         <a href="docs/" class="btn btn-primary">
-                            <span>📚</span>
-                            <span>View Full Documentation</span>
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                <path
+                                    d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+                                />
+                            </svg>
+                            View Full Documentation
                         </a>
                     </div>
                 </div>
@@ -434,30 +482,53 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                     <div class="download-card">
                         <div class="download-header">
                             <div class="download-icon">📦</div>
-                            <div class="download-info">
+                            <div class="download-meta">
                                 <h3>Download Source</h3>
                                 <p>Get the latest source code archive</p>
                             </div>
                         </div>
-                        <div class="download-buttons">
+                        <div class="download-actions">
                             <a
                                 href="dist/stem-rs-latest.tar.gz"
                                 class="btn btn-secondary download-btn"
                             >
-                                <span>📄</span>
-                                <span>.tar.gz</span>
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                .tar.gz
                             </a>
                             <a
                                 href="dist/stem-rs-latest.zip"
                                 class="btn btn-secondary download-btn"
                             >
-                                <span>📁</span>
-                                <span>.zip</span>
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                .zip
                             </a>
-                            <a href="dist/" class="btn btn-secondary download-btn">
-                                <span>📋</span>
-                                <span>All Versions</span>
-                            </a>
+                            <a href="dist/" class="btn btn-secondary download-btn">All Versions</a>
                         </div>
                     </div>
                 </div>
@@ -467,10 +538,10 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
         <footer>
             <div class="container">
                 <div class="footer-content">
-                    <div>
+                    <div class="footer-brand">
                         <div class="footer-logo">stem-rs</div>
-                        <p class="footer-copyright">
-                            © 2026 stem-rs contributors. Apache-2.0 License.
+                        <p class="footer-tagline">
+                            A Rust implementation of Stem for Tor control protocol interaction.
                         </p>
                     </div>
                     <div class="footer-links">
@@ -489,7 +560,221 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                         <a href="docs/">Documentation</a>
                     </div>
                 </div>
+                <div class="footer-bottom">
+                    <p class="footer-copyright">
+                        © 2026 stem-rs contributors. Licensed under Apache-2.0.
+                    </p>
+                </div>
             </div>
         </footer>
+
+        <script>
+            // Hide static fallback, show typing animation
+            const staticCode = document.getElementById('static-demo-code');
+            const typingContainer = document.getElementById('typing-container');
+            if (staticCode) staticCode.style.display = 'none';
+            if (typingContainer) typingContainer.style.display = 'block';
+
+            document.querySelector('.hero-install')?.addEventListener('click', async function () {
+                const text = this.dataset.copy;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.classList.add('copied');
+                    setTimeout(() => this.classList.remove('copied'), 1500);
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                }
+            });
+
+            const codeElement = document.getElementById('typing-code');
+            const container = document.getElementById('typing-container');
+
+            const codeSequences = [
+                [
+                    { t: 'use', c: 'code-keyword' },
+                    { t: ' stem_rs::{Controller, Signal, EventType};\n\n' },
+                    { t: '#[tokio::main]', c: 'code-macro' },
+                    { t: '\n' },
+                    { t: 'async fn', c: 'code-keyword' },
+                    { t: ' ' },
+                    { t: 'main', c: 'code-function' },
+                    { t: '() -> ' },
+                    { t: 'Result', c: 'code-type' },
+                    { t: '<(), stem_rs::Error> {\n', p: 150 },
+                    { t: '    // Connect to Tor control port', c: 'code-comment' },
+                    { t: '\n    ' },
+                    { t: 'let mut', c: 'code-keyword' },
+                    { t: ' ctrl = Controller::' },
+                    { t: 'from_port', c: 'code-function' },
+                    { t: '(\n        ' },
+                    { t: '"127.0.0.1:9051"', c: 'code-string' },
+                    { t: '.' },
+                    { t: 'parse', c: 'code-function' },
+                    { t: '()?\n    ).' },
+                    { t: 'await', c: 'code-keyword' },
+                    { t: '?;\n\n' },
+                    { t: '    // Authenticate automatically', c: 'code-comment' },
+                    { t: '\n    ctrl.' },
+                    { t: 'authenticate', c: 'code-function' },
+                    { t: '(' },
+                    { t: 'None', c: 'code-type' },
+                    { t: ').' },
+                    { t: 'await', c: 'code-keyword' },
+                    { t: '?;\n', p: 180 },
+                ],
+                [
+                    { t: '\n    // Get Tor version', c: 'code-comment' },
+                    { t: '\n    ' },
+                    { t: 'let', c: 'code-keyword' },
+                    { t: ' version = ctrl.' },
+                    { t: 'get_version', c: 'code-function' },
+                    { t: '().' },
+                    { t: 'await', c: 'code-keyword' },
+                    { t: '?;\n    ' },
+                    { t: 'println!', c: 'code-function' },
+                    { t: '(' },
+                    { t: '"Tor {}"', c: 'code-string' },
+                    { t: ', version);\n', p: 180 },
+                ],
+                [
+                    { t: '\n    // List active circuits', c: 'code-comment' },
+                    { t: '\n    ' },
+                    { t: 'let', c: 'code-keyword' },
+                    { t: ' circuits = ctrl.' },
+                    { t: 'get_circuits', c: 'code-function' },
+                    { t: '().' },
+                    { t: 'await', c: 'code-keyword' },
+                    { t: '?;\n    ' },
+                    { t: 'for', c: 'code-keyword' },
+                    { t: ' circ ' },
+                    { t: 'in', c: 'code-keyword' },
+                    { t: ' &circuits {\n        ' },
+                    { t: 'println!', c: 'code-function' },
+                    { t: '(' },
+                    { t: '"Circuit {}: {:?}"', c: 'code-string' },
+                    { t: ', circ.id, circ.status);\n    }\n', p: 180 },
+                ],
+                [
+                    { t: '\n    // Subscribe to events', c: 'code-comment' },
+                    { t: '\n    ctrl.' },
+                    { t: 'set_events', c: 'code-function' },
+                    { t: '(&[\n        EventType::Bw,' },
+                    { t: '     // bandwidth', c: 'code-comment' },
+                    { t: '\n        EventType::Circ,' },
+                    { t: '   // circuits', c: 'code-comment' },
+                    { t: '\n        EventType::Stream,' },
+                    { t: ' // streams', c: 'code-comment' },
+                    { t: '\n    ]).' },
+                    { t: 'await', c: 'code-keyword' },
+                    { t: '?;\n', p: 180 },
+                ],
+                [
+                    { t: '\n    // Process incoming events', c: 'code-comment' },
+                    { t: '\n    ' },
+                    { t: 'while let', c: 'code-keyword' },
+                    { t: ' ' },
+                    { t: 'Ok', c: 'code-type' },
+                    { t: '(ev) = ctrl.' },
+                    { t: 'recv_event', c: 'code-function' },
+                    { t: '().' },
+                    { t: 'await', c: 'code-keyword' },
+                    { t: ' {\n        ' },
+                    { t: 'handle_event', c: 'code-function' },
+                    { t: '(ev);\n    }\n', p: 180 },
+                ],
+                [
+                    { t: '\n    // Request new identity', c: 'code-comment' },
+                    { t: '\n    ctrl.' },
+                    { t: 'signal', c: 'code-function' },
+                    { t: '(Signal::Newnym).' },
+                    { t: 'await', c: 'code-keyword' },
+                    { t: '?;\n\n    ' },
+                    { t: 'Ok', c: 'code-type' },
+                    { t: '(())\n}' },
+                ],
+            ];
+
+            const CHAR_DELAY = 12;
+            let currentNode = null;
+            let currentClass = null;
+
+            function sleep(ms) {
+                return new Promise((r) => setTimeout(r, ms));
+            }
+
+            function scrollToBottom() {
+                if (container) container.scrollTop = container.scrollHeight;
+            }
+
+            function appendChar(char, cls) {
+                if (cls) {
+                    // Styled text - need a span
+                    if (
+                        currentClass === cls &&
+                        currentNode &&
+                        currentNode.nodeType === Node.ELEMENT_NODE
+                    ) {
+                        currentNode.textContent += char;
+                    } else {
+                        const span = document.createElement('span');
+                        span.className = cls;
+                        span.textContent = char;
+                        codeElement.appendChild(span);
+                        currentNode = span;
+                        currentClass = cls;
+                    }
+                } else {
+                    // Plain text - need a text node
+                    if (
+                        currentClass === null &&
+                        currentNode &&
+                        currentNode.nodeType === Node.TEXT_NODE
+                    ) {
+                        currentNode.textContent += char;
+                    } else {
+                        const textNode = document.createTextNode(char);
+                        codeElement.appendChild(textNode);
+                        currentNode = textNode;
+                        currentClass = null;
+                    }
+                }
+            }
+
+            async function typeChunk(text, cls) {
+                for (const char of text) {
+                    appendChar(char, cls || null);
+                    scrollToBottom();
+                    await sleep(CHAR_DELAY);
+                }
+            }
+
+            async function typeSequence(seq) {
+                for (const item of seq) {
+                    await typeChunk(item.t, item.c);
+                    if (item.p) await sleep(item.p);
+                }
+            }
+
+            async function runAnimation() {
+                if (!codeElement) return;
+
+                while (true) {
+                    codeElement.innerHTML = '';
+                    currentNode = null;
+                    currentClass = null;
+
+                    for (const seq of codeSequences) {
+                        await typeSequence(seq);
+                    }
+
+                    await sleep(3000);
+                    codeElement.style.opacity = '0';
+                    await sleep(400);
+                    codeElement.style.opacity = '1';
+                }
+            }
+
+            if (codeElement) runAnimation();
+        </script>
     </body>
 </html>

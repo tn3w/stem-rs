@@ -77,6 +77,8 @@ jobs:
           ln -sf "${ARCHIVE_NAME}.zip" stem-rs-latest.zip
           cd ../..
           
+          find docs -name "*.html" -exec sed -i "s|>VERSION</span>|>v${VERSION}</span>|g" {} \;
+          
           cp docs-src/styles/rustdoc-dark.css docs/docs/rustdoc-dark.css
           
           for file in $(find docs/docs -name "*.html"); do
@@ -93,6 +95,31 @@ jobs:
             sed -i "s|href=\"../index.html\"|href=\"/\"|g" "$file"
             sed -i "s|href=\"/index.html\"|href=\"/\"|g" "$file"
             sed -i 's|href="[^"]*stem_rs/index\.html"|href="/"|g' "$file"
+          done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install minification tools
+        run: npm install -g html-minifier-terser csso-cli terser
+
+      - name: Minify assets
+        run: |
+          find docs -name "*.css" -type f | while read file; do
+            csso "$file" -o "$file"
+          done
+          
+          find docs -name "*.html" -type f | while read file; do
+            html-minifier-terser \
+              --collapse-whitespace \
+              --remove-comments \
+              --remove-redundant-attributes \
+              --remove-empty-attributes \
+              --minify-css true \
+              --minify-js true \
+              -o "$file" "$file"
           done
 
       - name: Generate dist directory listing

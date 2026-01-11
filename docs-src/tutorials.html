@@ -1,0 +1,2347 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="Comprehensive tutorials and examples for stem-rs, the Rust library for Tor control protocol. Learn to connect, authenticate, monitor events, and build hidden services."
+        />
+        <meta
+            name="keywords"
+            content="stem-rs, Tor, Rust, tutorials, examples, control protocol, hidden services, onion services"
+        />
+        <meta property="og:title" content="Tutorials — stem-rs" />
+        <meta
+            property="og:description"
+            content="Step-by-step guides for building Tor-integrated applications with Rust."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://stem.tn3w.dev/tutorials" />
+        <title>Tutorials — stem-rs</title>
+        <link rel="stylesheet" href="styles/theme.css" />
+        <link rel="stylesheet" href="styles/main.css" />
+        <link rel="stylesheet" href="styles/tutorials.css" />
+    </head>
+    <body>
+        <header>
+            <nav class="container">
+                <a href="/" class="nav-brand">
+                    <span class="nav-logo">stem-rs</span>
+                    <span class="nav-version">VERSION</span>
+                </a>
+                <div class="nav-links">
+                    <a href="/#features" class="nav-hide-mobile">Features</a>
+                    <a href="/tutorials" class="nav-hide-mobile">Tutorials</a>
+                    <a href="/docs/">Docs</a>
+                    <a
+                        href="https://crates.io/crates/stem-rs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                            />
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                            <line x1="12" y1="22.08" x2="12" y2="12" />
+                        </svg>
+                    </a>
+                    <a
+                        href="https://github.com/tn3w/stem-rs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+                            />
+                        </svg>
+                    </a>
+                </div>
+            </nav>
+        </header>
+
+        <main class="tutorials-layout">
+            <aside class="tutorial-sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#getting-started" class="sidebar-link">
+                        <span class="sidebar-link-icon">🚀</span>
+                        <span class="sidebar-link-text">Getting Started</span>
+                    </a>
+                    <a href="#relay-monitoring" class="sidebar-link">
+                        <span class="sidebar-link-icon">📊</span>
+                        <span class="sidebar-link-text">Relay Monitoring</span>
+                    </a>
+                    <a href="#geographic-routing" class="sidebar-link">
+                        <span class="sidebar-link-icon">🌍</span>
+                        <span class="sidebar-link-text">Geographic Routing</span>
+                    </a>
+                    <a href="#event-handling" class="sidebar-link">
+                        <span class="sidebar-link-icon">📡</span>
+                        <span class="sidebar-link-text">Event Handling</span>
+                    </a>
+                    <a href="#hidden-services" class="sidebar-link">
+                        <span class="sidebar-link-icon">🧅</span>
+                        <span class="sidebar-link-text">Hidden Services</span>
+                    </a>
+                    <a href="#descriptors" class="sidebar-link">
+                        <span class="sidebar-link-icon">📄</span>
+                        <span class="sidebar-link-text">Descriptors</span>
+                    </a>
+                    <a href="#utilities" class="sidebar-link">
+                        <span class="sidebar-link-icon">🔧</span>
+                        <span class="sidebar-link-text">Utilities</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <div class="tutorial-content-wrapper">
+                <nav class="mobile-tutorial-nav">
+                    <div class="mobile-nav-inner">
+                        <a href="#getting-started" class="mobile-nav-link">
+                            <span class="mobile-nav-icon">🚀</span>
+                            Getting Started
+                        </a>
+                        <a href="#relay-monitoring" class="mobile-nav-link">
+                            <span class="mobile-nav-icon">📊</span>
+                            Relay Monitoring
+                        </a>
+                        <a href="#geographic-routing" class="mobile-nav-link">
+                            <span class="mobile-nav-icon">🌍</span>
+                            Geographic Routing
+                        </a>
+                        <a href="#event-handling" class="mobile-nav-link">
+                            <span class="mobile-nav-icon">📡</span>
+                            Event Handling
+                        </a>
+                        <a href="#hidden-services" class="mobile-nav-link">
+                            <span class="mobile-nav-icon">🧅</span>
+                            Hidden Services
+                        </a>
+                        <a href="#descriptors" class="mobile-nav-link">
+                            <span class="mobile-nav-icon">📄</span>
+                            Descriptors
+                        </a>
+                        <a href="#utilities" class="mobile-nav-link">
+                            <span class="mobile-nav-icon">🔧</span>
+                            Utilities
+                        </a>
+                    </div>
+                </nav>
+
+                <section id="page-header" class="page-header">
+                    <div class="page-header-badge">📚 Comprehensive Guides</div>
+                    <h1 class="page-title">Tutorials & Examples</h1>
+                    <p class="page-description">
+                        Learn to build Tor-integrated applications with stem-rs through practical,
+                        production-ready examples. From basic connections to advanced hidden service
+                        deployment.
+                    </p>
+                </section>
+
+                <section id="getting-started" class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🚀</div>
+                        <div class="tutorial-meta">
+                            <h2 class="tutorial-title">
+                                Getting Started
+                                <a href="#getting-started" class="tutorial-title-anchor">#</a>
+                            </h2>
+                            <p class="tutorial-subtitle">
+                                Set up your development environment and establish your first
+                                connection to Tor's control port. This guide covers prerequisites,
+                                configuration, and basic authentication methods.
+                            </p>
+                            <div class="tutorial-tags">
+                                <span class="tutorial-tag">Beginner</span>
+                                <span class="tutorial-tag">Setup</span>
+                                <span class="tutorial-tag">Authentication</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-content">
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">1</span>
+                                    Prerequisites
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Before using stem-rs, ensure you have Tor installed and
+                                    configured with a control port. The control port allows external
+                                    applications to communicate with the Tor process.
+                                </p>
+
+                                <div class="prereq-grid">
+                                    <div class="prereq-card">
+                                        <h4><span>🔧</span> Tor Installation</h4>
+                                        <p
+                                            style="
+                                                font-size: var(--text-sm);
+                                                color: var(--color-text-secondary);
+                                                margin: 0;
+                                            "
+                                        >
+                                            Install Tor via your package manager or from
+                                            <a
+                                                href="https://www.torproject.org/download/tor"
+                                                target="_blank"
+                                                >torproject.org</a
+                                            >
+                                        </p>
+                                    </div>
+                                    <div class="prereq-card">
+                                        <h4><span>⚙️</span> Control Port</h4>
+                                        <p
+                                            style="
+                                                font-size: var(--text-sm);
+                                                color: var(--color-text-secondary);
+                                                margin: 0;
+                                            "
+                                        >
+                                            Enable the control port in your torrc configuration file
+                                        </p>
+                                    </div>
+                                    <div class="prereq-card">
+                                        <h4><span>🦀</span> Rust Toolchain</h4>
+                                        <p
+                                            style="
+                                                font-size: var(--text-sm);
+                                                color: var(--color-text-secondary);
+                                                margin: 0;
+                                            "
+                                        >
+                                            Rust 1.70+ with async runtime support (Tokio)
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">2</span>
+                                    Tor Configuration
+                                </div>
+                                <span class="content-block-badge">torrc</span>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Add the following lines to your <code>torrc</code> file to
+                                    enable the control port:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        >
+                                            <path
+                                                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                            />
+                                            <polyline points="14 2 14 8 20 8" />
+                                        </svg>
+                                        /etc/tor/torrc
+                                    </span>
+                                </div>
+                                <pre><code><span class="code-comment"># Enable the control port for local connections</span>
+ControlPort 9051
+
+<span class="code-comment"># Cookie authentication (recommended for local use)</span>
+CookieAuthentication 1
+
+<span class="code-comment"># Alternative: Password authentication</span>
+<span class="code-comment"># HashedControlPassword 16:872860B76453A77D60CA2BB8C1A7042072093276A3D701AD684053EC4C</span></code></pre>
+                            </div>
+                            <div class="content-block-body">
+                                <div class="info-box tip">
+                                    <span class="info-box-icon">💡</span>
+                                    <div class="info-box-content">
+                                        <div class="info-box-title">Security Recommendation</div>
+                                        <p class="info-box-text">
+                                            Cookie authentication is preferred for local connections
+                                            as it doesn't require storing passwords. The cookie file
+                                            is automatically created with restricted permissions.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">3</span>
+                                    Add Dependencies
+                                </div>
+                                <span class="content-block-badge">Cargo.toml</span>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        >
+                                            <path
+                                                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                            />
+                                            <polyline points="14 2 14 8 20 8" />
+                                        </svg>
+                                        Cargo.toml
+                                    </span>
+                                </div>
+                                <pre><code><span class="code-keyword">[dependencies]</span>
+stem-rs = <span class="code-string">"1"</span>
+tokio = { version = <span class="code-string">"1"</span>, features = [<span class="code-string">"full"</span>] }</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">4</span>
+                                    Basic Connection
+                                </div>
+                                <span class="content-block-badge">Rust</span>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Establish a connection to Tor and authenticate. The controller
+                                    automatically detects the best authentication method available.
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        >
+                                            <path
+                                                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                            />
+                                            <polyline points="14 2 14 8 20 8" />
+                                        </svg>
+                                        main.rs
+                                    </span>
+                                    <div class="code-block-actions">
+                                        <button class="code-copy-btn" data-code="basic-connection">
+                                            Copy
+                                        </button>
+                                    </div>
+                                </div>
+                                <pre><code id="basic-connection"><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-comment">// Connect to Tor's control port</span>
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Authenticate (auto-detects: cookie, safecookie, or password)</span>
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Query Tor version to verify connection</span>
+    <span class="code-keyword">let</span> version = controller.<span class="code-function">get_version</span>().<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Connected to Tor {}"</span>, version);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                            <div class="content-block-body">
+                                <div class="output-preview">
+                                    <span class="output-label">Output</span>
+                                    <pre>Connected to Tor 0.4.8.10</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">5</span>
+                                    Authentication Methods
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>stem-rs supports all standard Tor authentication methods:</p>
+
+                                <table class="config-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Method</th>
+                                            <th>Description</th>
+                                            <th>Configuration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>SAFECOOKIE</code></td>
+                                            <td>Challenge-response authentication (most secure)</td>
+                                            <td><code>CookieAuthentication 1</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>COOKIE</code></td>
+                                            <td>File-based authentication token</td>
+                                            <td><code>CookieAuthentication 1</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>HASHEDPASSWORD</code></td>
+                                            <td>Password-based authentication</td>
+                                            <td><code>HashedControlPassword ...</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>NULL</code></td>
+                                            <td>No authentication (not recommended)</td>
+                                            <td>Default when no auth configured</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-block-header">
+                                <span class="code-block-filename">Password Authentication</span>
+                            </div>
+                            <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Provide password explicitly</span>
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">Some</span>(<span class="code-string">"your_password"</span>)).<span class="code-keyword">await</span>?;
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-block-header">
+                                <span class="code-block-filename">Unix Socket Connection</span>
+                            </div>
+                            <pre><code><span class="code-keyword">use</span> std::path::Path;
+<span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-comment">// Connect via Unix domain socket (enhanced security)</span>
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_socket_file</span>(
+        Path::<span class="code-function">new</span>(<span class="code-string">"/var/run/tor/control"</span>)
+    ).<span class="code-keyword">await</span>?;
+    
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-keyword">let</span> pid = controller.<span class="code-function">get_pid</span>().<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Tor process ID: {}"</span>, pid);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="relay-monitoring" class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">📊</div>
+                        <div class="tutorial-meta">
+                            <h2 class="tutorial-title">
+                                Relay Monitoring
+                                <a href="#relay-monitoring" class="tutorial-title-anchor">#</a>
+                            </h2>
+                            <p class="tutorial-subtitle">
+                                Monitor your Tor relay's performance and traffic statistics. Learn
+                                to query bandwidth usage, connection counts, and other operational
+                                metrics in real-time.
+                            </p>
+                            <div class="tutorial-tags">
+                                <span class="tutorial-tag">Relay Operators</span>
+                                <span class="tutorial-tag">Metrics</span>
+                                <span class="tutorial-tag">get_info</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-content">
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">1</span>
+                                    Traffic Statistics
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Query cumulative traffic statistics from your relay. These
+                                    values represent total bytes transferred since Tor started.
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">traffic_monitor.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Query traffic statistics</span>
+    <span class="code-keyword">let</span> bytes_read = controller.<span class="code-function">get_info</span>(<span class="code-string">"traffic/read"</span>).<span class="code-keyword">await</span>?;
+    <span class="code-keyword">let</span> bytes_written = controller.<span class="code-function">get_info</span>(<span class="code-string">"traffic/written"</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Traffic Statistics:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  Downloaded: {} bytes"</span>, bytes_read);
+    <span class="code-function">println!</span>(<span class="code-string">"  Uploaded:   {} bytes"</span>, bytes_written);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                            <div class="content-block-body">
+                                <div class="output-preview">
+                                    <span class="output-label">Output</span>
+                                    <pre>
+Traffic Statistics:
+  Downloaded: 33406 bytes
+  Uploaded:   29649 bytes</pre
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">2</span>
+                                    Available Metrics
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    The <code>get_info</code> method provides access to numerous Tor
+                                    metrics:
+                                </p>
+
+                                <table class="config-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Description</th>
+                                            <th>Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>traffic/read</code></td>
+                                            <td>Total bytes downloaded</td>
+                                            <td>Integer</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>traffic/written</code></td>
+                                            <td>Total bytes uploaded</td>
+                                            <td>Integer</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>version</code></td>
+                                            <td>Tor version string</td>
+                                            <td>String</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>circuit-status</code></td>
+                                            <td>Active circuit information</td>
+                                            <td>Multi-line</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>stream-status</code></td>
+                                            <td>Active stream information</td>
+                                            <td>Multi-line</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>address</code></td>
+                                            <td>Best guess at external IP</td>
+                                            <td>IP Address</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>fingerprint</code></td>
+                                            <td>Relay fingerprint (if relay)</td>
+                                            <td>Hex String</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">3</span>
+                                    Comprehensive Relay Monitor
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    A complete example that queries multiple metrics and formats
+                                    them for display:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">relay_dashboard.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-keyword">fn</span> <span class="code-function">format_bytes</span>(bytes: <span class="code-type">u64</span>) -> <span class="code-type">String</span> {
+    <span class="code-keyword">const</span> KB: <span class="code-type">u64</span> = <span class="code-number">1024</span>;
+    <span class="code-keyword">const</span> MB: <span class="code-type">u64</span> = KB * <span class="code-number">1024</span>;
+    <span class="code-keyword">const</span> GB: <span class="code-type">u64</span> = MB * <span class="code-number">1024</span>;
+    
+    <span class="code-keyword">if</span> bytes >= GB {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} GB"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / GB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    } <span class="code-keyword">else if</span> bytes >= MB {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} MB"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / MB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    } <span class="code-keyword">else if</span> bytes >= KB {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} KB"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / KB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    } <span class="code-keyword">else</span> {
+        <span class="code-function">format!</span>(<span class="code-string">"{} B"</span>, bytes)
+    }
+}
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> ctrl = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    ctrl.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Gather relay information</span>
+    <span class="code-keyword">let</span> version = ctrl.<span class="code-function">get_version</span>().<span class="code-keyword">await</span>?;
+    <span class="code-keyword">let</span> pid = ctrl.<span class="code-function">get_pid</span>().<span class="code-keyword">await</span>?;
+    
+    <span class="code-keyword">let</span> read: <span class="code-type">u64</span> = ctrl.<span class="code-function">get_info</span>(<span class="code-string">"traffic/read"</span>).<span class="code-keyword">await</span>?.<span class="code-function">parse</span>().<span class="code-function">unwrap_or</span>(<span class="code-number">0</span>);
+    <span class="code-keyword">let</span> written: <span class="code-type">u64</span> = ctrl.<span class="code-function">get_info</span>(<span class="code-string">"traffic/written"</span>).<span class="code-keyword">await</span>?.<span class="code-function">parse</span>().<span class="code-function">unwrap_or</span>(<span class="code-number">0</span>);
+    
+    <span class="code-function">println!</span>(<span class="code-string">"╔══════════════════════════════════════╗"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"║       Tor Relay Dashboard            ║"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"╠══════════════════════════════════════╣"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"║ Version:    {:&lt;24} ║"</span>, version);
+    <span class="code-function">println!</span>(<span class="code-string">"║ Process ID: {:&lt;24} ║"</span>, pid);
+    <span class="code-function">println!</span>(<span class="code-string">"╠══════════════════════════════════════╣"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"║ Downloaded: {:&lt;24} ║"</span>, <span class="code-function">format_bytes</span>(read));
+    <span class="code-function">println!</span>(<span class="code-string">"║ Uploaded:   {:&lt;24} ║"</span>, <span class="code-function">format_bytes</span>(written));
+    <span class="code-function">println!</span>(<span class="code-string">"╚══════════════════════════════════════╝"</span>);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="geographic-routing" class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🌍</div>
+                        <div class="tutorial-meta">
+                            <h2 class="tutorial-title">
+                                Geographic Exit Selection
+                                <a href="#geographic-routing" class="tutorial-title-anchor">#</a>
+                            </h2>
+                            <p class="tutorial-subtitle">
+                                Configure Tor to route traffic through specific countries. Useful
+                                for accessing geo-restricted content, testing localization, or
+                                bypassing regional censorship.
+                            </p>
+                            <div class="tutorial-tags">
+                                <span class="tutorial-tag">Exit Nodes</span>
+                                <span class="tutorial-tag">Country Codes</span>
+                                <span class="tutorial-tag">SOCKS Proxy</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-content">
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">1</span>
+                                    Configuring Exit Nodes
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Use the <code>ExitNodes</code> configuration option to specify
+                                    which countries Tor should exit through. Country codes follow
+                                    the ISO 3166-1 alpha-2 standard enclosed in braces.
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">exit_selection.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, Signal};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Configure exit through Germany</span>
+    controller.<span class="code-function">set_conf</span>(<span class="code-string">"ExitNodes"</span>, <span class="code-string">"{de}"</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Request new circuits with the updated exit policy</span>
+    controller.<span class="code-function">signal</span>(Signal::Newnym).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Exit nodes configured for Germany"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"New circuits will exit through DE relays"</span>);
+    
+    <span class="code-comment">// To reset to default behavior:</span>
+    <span class="code-comment">// controller.reset_conf("ExitNodes").await?;</span>
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                            <div class="content-block-body">
+                                <div class="info-box warning">
+                                    <span class="info-box-icon">⚠️</span>
+                                    <div class="info-box-content">
+                                        <div class="info-box-title">Privacy Consideration</div>
+                                        <p class="info-box-text">
+                                            Restricting exit nodes reduces anonymity by limiting the
+                                            pool of available relays. Use this feature only when
+                                            geographic location is essential for your use case.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">2</span>
+                                    Common Country Codes
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <table class="config-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Country</th>
+                                            <th>Code</th>
+                                            <th>Country</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>{us}</code></td>
+                                            <td>United States</td>
+                                            <td><code>{de}</code></td>
+                                            <td>Germany</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{gb}</code></td>
+                                            <td>United Kingdom</td>
+                                            <td><code>{fr}</code></td>
+                                            <td>France</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{nl}</code></td>
+                                            <td>Netherlands</td>
+                                            <td><code>{ch}</code></td>
+                                            <td>Switzerland</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{se}</code></td>
+                                            <td>Sweden</td>
+                                            <td><code>{jp}</code></td>
+                                            <td>Japan</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">3</span>
+                                    Making HTTP Requests Through Tor
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Combine stem-rs with an HTTP client that supports SOCKS5 proxies
+                                    to make requests through Tor:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename"
+                                        >Cargo.toml (additional dependencies)</span
+                                    >
+                                </div>
+                                <pre><code><span class="code-keyword">[dependencies]</span>
+reqwest = { version = <span class="code-string">"0.11"</span>, features = [<span class="code-string">"socks"</span>] }</code></pre>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">tor_http_client.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, Signal};
+<span class="code-keyword">use</span> std::time::Duration;
+
+<span class="code-keyword">const</span> SOCKS_PORT: <span class="code-type">u16</span> = <span class="code-number">9050</span>;
+
+<span class="code-keyword">async fn</span> <span class="code-function">query_through_tor</span>(url: &<span class="code-type">str</span>) -> <span class="code-type">Result</span>&lt;<span class="code-type">String</span>, Box&lt;<span class="code-keyword">dyn</span> std::error::Error&gt;&gt; {
+    <span class="code-keyword">let</span> proxy = reqwest::Proxy::<span class="code-function">all</span>(
+        <span class="code-function">format!</span>(<span class="code-string">"socks5h://127.0.0.1:{}"</span>, SOCKS_PORT)
+    )?;
+    
+    <span class="code-keyword">let</span> client = reqwest::Client::<span class="code-function">builder</span>()
+        .<span class="code-function">proxy</span>(proxy)
+        .<span class="code-function">timeout</span>(Duration::<span class="code-function">from_secs</span>(<span class="code-number">30</span>))
+        .<span class="code-function">build</span>()?;
+    
+    <span class="code-keyword">let</span> response = client.<span class="code-function">get</span>(url).<span class="code-function">send</span>().<span class="code-keyword">await</span>?.<span class="code-function">text</span>().<span class="code-keyword">await</span>?;
+    <span class="code-type">Ok</span>(response)
+}
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Box&lt;<span class="code-keyword">dyn</span> std::error::Error&gt;&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Configure exit through Germany</span>
+    controller.<span class="code-function">set_conf</span>(<span class="code-string">"ExitNodes"</span>, <span class="code-string">"{de}"</span>).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">signal</span>(Signal::Newnym).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Wait for new circuits to be established</span>
+    tokio::time::<span class="code-function">sleep</span>(Duration::<span class="code-function">from_secs</span>(<span class="code-number">5</span>)).<span class="code-keyword">await</span>;
+    
+    <span class="code-comment">// Verify exit IP location</span>
+    <span class="code-keyword">let</span> response = <span class="code-function">query_through_tor</span>(
+        <span class="code-string">"https://check.torproject.org/api/ip"</span>
+    ).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Exit IP information: {}"</span>, response);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">4</span>
+                                    Multi-Country Rotation
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Iterate through multiple countries for testing or data
+                                    collection:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">country_rotation.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, Signal};
+<span class="code-keyword">use</span> std::time::Duration;
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Box&lt;<span class="code-keyword">dyn</span> std::error::Error&gt;&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-keyword">let</span> countries = [
+        (<span class="code-string">"{us}"</span>, <span class="code-string">"United States"</span>),
+        (<span class="code-string">"{de}"</span>, <span class="code-string">"Germany"</span>),
+        (<span class="code-string">"{jp}"</span>, <span class="code-string">"Japan"</span>),
+        (<span class="code-string">"{nl}"</span>, <span class="code-string">"Netherlands"</span>),
+    ];
+    
+    <span class="code-keyword">for</span> (code, name) <span class="code-keyword">in</span> countries {
+        <span class="code-function">println!</span>(<span class="code-string">"\n--- Switching to {} ({}) ---"</span>, name, code);
+        
+        controller.<span class="code-function">set_conf</span>(<span class="code-string">"ExitNodes"</span>, code).<span class="code-keyword">await</span>?;
+        controller.<span class="code-function">signal</span>(Signal::Newnym).<span class="code-keyword">await</span>?;
+        
+        <span class="code-comment">// Wait for circuit establishment</span>
+        tokio::time::<span class="code-function">sleep</span>(Duration::<span class="code-function">from_secs</span>(<span class="code-number">3</span>)).<span class="code-keyword">await</span>;
+        
+        <span class="code-comment">// Perform your operations here...</span>
+        <span class="code-function">println!</span>(<span class="code-string">"Ready to route through {}"</span>, name);
+    }
+    
+    <span class="code-comment">// Reset to default exit selection</span>
+    controller.<span class="code-function">reset_conf</span>(<span class="code-string">"ExitNodes"</span>).<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"\nReset to default exit node selection"</span>);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">5</span>
+                                    Manual Circuit Management
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    For advanced use cases, you can inspect and manage circuits
+                                    directly:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">circuit_management.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, CircStatus};
+<span class="code-keyword">use</span> std::time::Duration;
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// List current circuits</span>
+    <span class="code-keyword">let</span> circuits = controller.<span class="code-function">get_circuits</span>().<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Active Circuits:"</span>);
+    <span class="code-keyword">for</span> circuit <span class="code-keyword">in</span> &circuits {
+        <span class="code-keyword">if</span> circuit.status == CircStatus::Built {
+            <span class="code-function">println!</span>(<span class="code-string">"  Circuit {} ({} hops):"</span>, circuit.id, circuit.path.<span class="code-function">len</span>());
+            <span class="code-keyword">for</span> relay <span class="code-keyword">in</span> &circuit.path {
+                <span class="code-function">println!</span>(<span class="code-string">"    → {} ({:?})"</span>, relay.fingerprint, relay.nickname);
+            }
+        }
+    }
+    
+    <span class="code-comment">// Create a new circuit (Tor selects the path)</span>
+    <span class="code-keyword">let</span> circuit_id = controller.<span class="code-function">new_circuit</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"\nCreated new circuit: {}"</span>, circuit_id);
+    
+    <span class="code-comment">// Wait for circuit to be built</span>
+    tokio::time::<span class="code-function">sleep</span>(Duration::<span class="code-function">from_secs</span>(<span class="code-number">5</span>)).<span class="code-keyword">await</span>;
+    
+    <span class="code-comment">// Close the circuit when done</span>
+    controller.<span class="code-function">close_circuit</span>(&circuit_id).<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Circuit {} closed"</span>, circuit_id);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="event-handling" class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">📡</div>
+                        <div class="tutorial-meta">
+                            <h2 class="tutorial-title">
+                                Asynchronous Event Handling
+                                <a href="#event-handling" class="tutorial-title-anchor">#</a>
+                            </h2>
+                            <p class="tutorial-subtitle">
+                                Subscribe to real-time events from Tor including bandwidth updates,
+                                circuit changes, stream activity, and log messages. Build responsive
+                                monitoring applications.
+                            </p>
+                            <div class="tutorial-tags">
+                                <span class="tutorial-tag">Events</span>
+                                <span class="tutorial-tag">Async</span>
+                                <span class="tutorial-tag">Monitoring</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-content">
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">1</span>
+                                    Available Event Types
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Tor emits various events that you can subscribe to. Each event
+                                    type provides different information about Tor's operation:
+                                </p>
+
+                                <table class="config-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Event</th>
+                                            <th>Description</th>
+                                            <th>Frequency</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>Bw</code></td>
+                                            <td>Bandwidth usage (bytes read/written)</td>
+                                            <td>Every second</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Circ</code></td>
+                                            <td>Circuit status changes</td>
+                                            <td>On change</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Stream</code></td>
+                                            <td>Stream status changes</td>
+                                            <td>On change</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Notice</code></td>
+                                            <td>Notice-level log messages</td>
+                                            <td>On occurrence</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Warn</code></td>
+                                            <td>Warning-level log messages</td>
+                                            <td>On occurrence</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Err</code></td>
+                                            <td>Error-level log messages</td>
+                                            <td>On occurrence</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">2</span>
+                                    Real-Time Bandwidth Monitor
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Monitor Tor's bandwidth usage in real-time. Bandwidth events are
+                                    emitted every second with the bytes transferred:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">bandwidth_monitor.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, EventType};
+<span class="code-keyword">use</span> stem_rs::events::ParsedEvent;
+
+<span class="code-keyword">fn</span> <span class="code-function">format_bytes</span>(bytes: <span class="code-type">u64</span>) -> <span class="code-type">String</span> {
+    <span class="code-keyword">const</span> KB: <span class="code-type">u64</span> = <span class="code-number">1024</span>;
+    <span class="code-keyword">const</span> MB: <span class="code-type">u64</span> = KB * <span class="code-number">1024</span>;
+    <span class="code-keyword">const</span> GB: <span class="code-type">u64</span> = MB * <span class="code-number">1024</span>;
+    
+    <span class="code-keyword">if</span> bytes >= GB {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} GB"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / GB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    } <span class="code-keyword">else if</span> bytes >= MB {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} MB"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / MB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    } <span class="code-keyword">else if</span> bytes >= KB {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} KB"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / KB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    } <span class="code-keyword">else</span> {
+        <span class="code-function">format!</span>(<span class="code-string">"{} B"</span>, bytes)
+    }
+}
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Subscribe to bandwidth events</span>
+    controller.<span class="code-function">set_events</span>(&[EventType::Bw]).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Monitoring bandwidth (Ctrl+C to stop)...\n"</span>);
+    
+    <span class="code-keyword">let mut</span> total_read = <span class="code-number">0u64</span>;
+    <span class="code-keyword">let mut</span> total_written = <span class="code-number">0u64</span>;
+    
+    <span class="code-keyword">loop</span> {
+        <span class="code-keyword">match</span> controller.<span class="code-function">recv_event</span>().<span class="code-keyword">await</span>? {
+            ParsedEvent::<span class="code-function">Bandwidth</span>(bw) => {
+                total_read += bw.read;
+                total_written += bw.written;
+                
+                <span class="code-function">println!</span>(
+                    <span class="code-string">"↓ {:>8} B/s  ↑ {:>8} B/s  │  Total: ↓ {} ↑ {}"</span>,
+                    bw.read,
+                    bw.written,
+                    <span class="code-function">format_bytes</span>(total_read),
+                    <span class="code-function">format_bytes</span>(total_written)
+                );
+            }
+            _ => {}
+        }
+    }
+}</code></pre>
+                            </div>
+                            <div class="content-block-body">
+                                <div class="output-preview">
+                                    <span class="output-label">Output</span>
+                                    <pre>
+↓     1024 B/s  ↑      512 B/s  │  Total: ↓ 1.00 KB ↑ 512 B
+↓     2048 B/s  ↑     1024 B/s  │  Total: ↓ 3.00 KB ↑ 1.50 KB
+↓      512 B/s  ↑      256 B/s  │  Total: ↓ 3.50 KB ↑ 1.75 KB</pre
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">3</span>
+                                    Circuit Event Monitoring
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Track circuit lifecycle events including creation, extension,
+                                    and closure:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">circuit_monitor.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, EventType, CircStatus};
+<span class="code-keyword">use</span> stem_rs::events::ParsedEvent;
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Subscribe to circuit events</span>
+    controller.<span class="code-function">set_events</span>(&[EventType::Circ]).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Monitoring circuit events...\n"</span>);
+    
+    <span class="code-keyword">loop</span> {
+        <span class="code-keyword">match</span> controller.<span class="code-function">recv_event</span>().<span class="code-keyword">await</span>? {
+            ParsedEvent::<span class="code-function">Circuit</span>(circ) => {
+                <span class="code-keyword">let</span> status_icon = <span class="code-keyword">match</span> circ.status {
+                    CircStatus::Launched => <span class="code-string">"🚀 LAUNCHED"</span>,
+                    CircStatus::Built => <span class="code-string">"✅ BUILT"</span>,
+                    CircStatus::Extended => <span class="code-string">"📡 EXTENDED"</span>,
+                    CircStatus::Failed => <span class="code-string">"❌ FAILED"</span>,
+                    CircStatus::Closed => <span class="code-string">"🔒 CLOSED"</span>,
+                    _ => <span class="code-string">"❓ UNKNOWN"</span>,
+                };
+                
+                <span class="code-function">println!</span>(
+                    <span class="code-string">"{} Circuit {} ({} hops)"</span>,
+                    status_icon,
+                    circ.id,
+                    circ.path.<span class="code-function">len</span>()
+                );
+                
+                <span class="code-keyword">if</span> !circ.path.<span class="code-function">is_empty</span>() {
+                    <span class="code-keyword">for</span> (fp, nick) <span class="code-keyword">in</span> &circ.path {
+                        <span class="code-function">println!</span>(<span class="code-string">"   → {} ({:?})"</span>, &fp[..<span class="code-number">8</span>], nick);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">4</span>
+                                    Multi-Event Handler with Channels
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    For production applications, use async channels to handle events
+                                    without blocking other operations:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">multi_event_handler.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, EventType};
+<span class="code-keyword">use</span> stem_rs::events::ParsedEvent;
+<span class="code-keyword">use</span> tokio::sync::mpsc;
+<span class="code-keyword">use</span> std::sync::Arc;
+<span class="code-keyword">use</span> tokio::sync::Mutex;
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    <span class="code-keyword">let</span> controller = Arc::<span class="code-function">new</span>(Mutex::<span class="code-function">new</span>(controller));
+    
+    <span class="code-comment">// Authenticate and subscribe to events</span>
+    {
+        <span class="code-keyword">let mut</span> ctrl = controller.<span class="code-function">lock</span>().<span class="code-keyword">await</span>;
+        ctrl.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+        ctrl.<span class="code-function">set_events</span>(&[
+            EventType::Bw,
+            EventType::Circ,
+            EventType::Notice,
+        ]).<span class="code-keyword">await</span>?;
+    }
+    
+    <span class="code-comment">// Create channel for event processing</span>
+    <span class="code-keyword">let</span> (tx, <span class="code-keyword">mut</span> rx) = mpsc::<span class="code-function">channel</span>::&lt;ParsedEvent&gt;(<span class="code-number">100</span>);
+    
+    <span class="code-comment">// Spawn event receiver task</span>
+    <span class="code-keyword">let</span> ctrl_clone = controller.<span class="code-function">clone</span>();
+    tokio::<span class="code-function">spawn</span>(<span class="code-keyword">async move</span> {
+        <span class="code-keyword">loop</span> {
+            <span class="code-keyword">let</span> event = {
+                <span class="code-keyword">let mut</span> ctrl = ctrl_clone.<span class="code-function">lock</span>().<span class="code-keyword">await</span>;
+                ctrl.<span class="code-function">recv_event</span>().<span class="code-keyword">await</span>
+            };
+            
+            <span class="code-keyword">match</span> event {
+                <span class="code-type">Ok</span>(e) => {
+                    <span class="code-keyword">if</span> tx.<span class="code-function">send</span>(e).<span class="code-keyword">await</span>.<span class="code-function">is_err</span>() {
+                        <span class="code-keyword">break</span>;
+                    }
+                }
+                <span class="code-type">Err</span>(_) => <span class="code-keyword">break</span>,
+            }
+        }
+    });
+    
+    <span class="code-comment">// Process events in main task</span>
+    <span class="code-keyword">while let</span> <span class="code-type">Some</span>(event) = rx.<span class="code-function">recv</span>().<span class="code-keyword">await</span> {
+        <span class="code-keyword">match</span> event {
+            ParsedEvent::<span class="code-function">Bandwidth</span>(bw) => {
+                <span class="code-keyword">if</span> bw.read > <span class="code-number">0</span> || bw.written > <span class="code-number">0</span> {
+                    <span class="code-function">println!</span>(<span class="code-string">"[BW] ↓{} ↑{}"</span>, bw.read, bw.written);
+                }
+            }
+            ParsedEvent::<span class="code-function">Circuit</span>(circ) => {
+                <span class="code-function">println!</span>(<span class="code-string">"[CIRC] {} {:?}"</span>, circ.id, circ.status);
+            }
+            ParsedEvent::<span class="code-function">Log</span>(log) => {
+                <span class="code-function">println!</span>(<span class="code-string">"[{}] {}"</span>, log.runlevel, log.message);
+            }
+            _ => {}
+        }
+    }
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="hidden-services" class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🧅</div>
+                        <div class="tutorial-meta">
+                            <h2 class="tutorial-title">
+                                Onion Services (Hidden Services)
+                                <a href="#hidden-services" class="tutorial-title-anchor">#</a>
+                            </h2>
+                            <p class="tutorial-subtitle">
+                                Create and manage Tor hidden services programmatically. Host
+                                services accessible only through the Tor network without exposing
+                                your server's IP address.
+                            </p>
+                            <div class="tutorial-tags">
+                                <span class="tutorial-tag">Onion Services</span>
+                                <span class="tutorial-tag">ED25519-V3</span>
+                                <span class="tutorial-tag">Ephemeral</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-content">
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">1</span>
+                                    Ephemeral Hidden Service
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Ephemeral hidden services exist only in memory and are the
+                                    recommended approach for programmatic service creation. They
+                                    don't persist to disk and are automatically cleaned up.
+                                </p>
+
+                                <div class="info-box note">
+                                    <span class="info-box-icon">📝</span>
+                                    <div class="info-box-content">
+                                        <div class="info-box-title">V3 Onion Services</div>
+                                        <p class="info-box-text">
+                                            Always use <code>ED25519-V3</code> for new services. V2
+                                            onion services (RSA-based) are deprecated and no longer
+                                            supported by the Tor network.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">ephemeral_service.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+<span class="code-keyword">use</span> std::time::Duration;
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Creating ephemeral hidden service..."</span>);
+    
+    <span class="code-comment">// Create a v3 hidden service</span>
+    <span class="code-comment">// Maps port 80 on the .onion address to localhost:8080</span>
+    <span class="code-keyword">let</span> response = controller.<span class="code-function">create_ephemeral_hidden_service</span>(
+        &[(<span class="code-number">80</span>, <span class="code-string">"127.0.0.1:8080"</span>)],  <span class="code-comment">// Port mappings</span>
+        <span class="code-string">"NEW"</span>,                        <span class="code-comment">// Generate new key</span>
+        <span class="code-string">"ED25519-V3"</span>,                 <span class="code-comment">// Key type (v3 onion)</span>
+        &[],                          <span class="code-comment">// No special flags</span>
+    ).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\n✅ Hidden service created!"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"   Address: {}.onion"</span>, response.service_id);
+    <span class="code-function">println!</span>(<span class="code-string">"   Key type: {:?}"</span>, response.private_key_type);
+    
+    <span class="code-comment">// The private key can be saved to recreate the same address later</span>
+    <span class="code-keyword">if let</span> <span class="code-type">Some</span>(<span class="code-keyword">ref</span> key) = response.private_key {
+        <span class="code-function">println!</span>(<span class="code-string">"   Private key: {}..."</span>, &key[..<span class="code-number">50</span>.<span class="code-function">min</span>(key.<span class="code-function">len</span>())]);
+    }
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\nService running. Press Ctrl+C to stop."</span>);
+    
+    <span class="code-comment">// Keep the service running</span>
+    tokio::time::<span class="code-function">sleep</span>(Duration::<span class="code-function">from_secs</span>(<span class="code-number">60</span>)).<span class="code-keyword">await</span>;
+    
+    <span class="code-comment">// Clean up</span>
+    controller.<span class="code-function">remove_ephemeral_hidden_service</span>(&response.service_id).<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"\nHidden service removed."</span>);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">2</span>
+                                    Persistent Key Storage
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    To maintain the same .onion address across restarts, save and
+                                    restore the private key:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">persistent_service.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+<span class="code-keyword">use</span> std::path::Path;
+<span class="code-keyword">use</span> tokio::fs;
+
+<span class="code-keyword">const</span> KEY_FILE: &<span class="code-type">str</span> = <span class="code-string">"hidden_service.key"</span>;
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-keyword">let</span> key_path = Path::<span class="code-function">new</span>(KEY_FILE);
+    
+    <span class="code-keyword">let</span> response = <span class="code-keyword">if</span> key_path.<span class="code-function">exists</span>() {
+        <span class="code-comment">// Load existing key to restore the same .onion address</span>
+        <span class="code-keyword">let</span> key_data = fs::<span class="code-function">read_to_string</span>(key_path).<span class="code-keyword">await</span>
+            .<span class="code-function">map_err</span>(|e| Error::<span class="code-function">Protocol</span>(<span class="code-function">format!</span>(<span class="code-string">"Failed to read key: {}"</span>, e)))?;
+        
+        <span class="code-keyword">let</span> (key_type, key_content) = key_data.<span class="code-function">split_once</span>(<span class="code-string">':'</span>)
+            .<span class="code-function">ok_or_else</span>(|| Error::<span class="code-function">Protocol</span>(<span class="code-string">"Invalid key format"</span>.<span class="code-function">into</span>()))?;
+        
+        <span class="code-function">println!</span>(<span class="code-string">"Restoring hidden service from saved key..."</span>);
+        
+        controller.<span class="code-function">create_ephemeral_hidden_service</span>(
+            &[(<span class="code-number">80</span>, <span class="code-string">"127.0.0.1:8080"</span>)],
+            key_type,
+            key_content,
+            &[],
+        ).<span class="code-keyword">await</span>?
+    } <span class="code-keyword">else</span> {
+        <span class="code-comment">// Create new service and save the key</span>
+        <span class="code-function">println!</span>(<span class="code-string">"Creating new hidden service..."</span>);
+        
+        <span class="code-keyword">let</span> response = controller.<span class="code-function">create_ephemeral_hidden_service</span>(
+            &[(<span class="code-number">80</span>, <span class="code-string">"127.0.0.1:8080"</span>)],
+            <span class="code-string">"NEW"</span>,
+            <span class="code-string">"ED25519-V3"</span>,
+            &[],
+        ).<span class="code-keyword">await</span>?;
+        
+        <span class="code-comment">// Save the key for future use</span>
+        <span class="code-keyword">if let</span> (<span class="code-type">Some</span>(key_type), <span class="code-type">Some</span>(key)) = 
+            (&response.private_key_type, &response.private_key) {
+            <span class="code-keyword">let</span> key_data = <span class="code-function">format!</span>(<span class="code-string">"{}:{}"</span>, key_type, key);
+            fs::<span class="code-function">write</span>(key_path, key_data).<span class="code-keyword">await</span>
+                .<span class="code-function">map_err</span>(|e| Error::<span class="code-function">Protocol</span>(<span class="code-function">format!</span>(<span class="code-string">"Failed to save key: {}"</span>, e)))?;
+            <span class="code-function">println!</span>(<span class="code-string">"Key saved to {}"</span>, KEY_FILE);
+        }
+        
+        response
+    };
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\n🧅 Hidden service: {}.onion"</span>, response.service_id);
+    <span class="code-function">println!</span>(<span class="code-string">"   Forwarding port 80 → 127.0.0.1:8080"</span>);
+    
+    <span class="code-comment">// Wait for shutdown signal</span>
+    <span class="code-function">println!</span>(<span class="code-string">"\nPress Ctrl+C to stop."</span>);
+    tokio::signal::<span class="code-function">ctrl_c</span>().<span class="code-keyword">await</span>.<span class="code-function">ok</span>();
+    
+    controller.<span class="code-function">remove_ephemeral_hidden_service</span>(&response.service_id).<span class="code-keyword">await</span>?;
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">3</span>
+                                    Multi-Port Hidden Service
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    A single hidden service can expose multiple ports, each mapping
+                                    to different local services:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">multi_port_service.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Create service with multiple port mappings</span>
+    <span class="code-keyword">let</span> response = controller.<span class="code-function">create_ephemeral_hidden_service</span>(
+        &[
+            (<span class="code-number">80</span>, <span class="code-string">"127.0.0.1:8080"</span>),    <span class="code-comment">// HTTP</span>
+            (<span class="code-number">443</span>, <span class="code-string">"127.0.0.1:8443"</span>),  <span class="code-comment">// HTTPS</span>
+            (<span class="code-number">22</span>, <span class="code-string">"127.0.0.1:2222"</span>),   <span class="code-comment">// SSH</span>
+        ],
+        <span class="code-string">"NEW"</span>,
+        <span class="code-string">"ED25519-V3"</span>,
+        &[<span class="code-string">"Detach"</span>],  <span class="code-comment">// Keep running if controller disconnects</span>
+    ).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Multi-port hidden service created:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  Address: {}.onion"</span>, response.service_id);
+    <span class="code-function">println!</span>(<span class="code-string">"  Port 80  → localhost:8080 (HTTP)"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  Port 443 → localhost:8443 (HTTPS)"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  Port 22  → localhost:2222 (SSH)"</span>);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">4</span>
+                                    Complete Web Server with Hidden Service
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    A production-ready example combining an HTTP server with a
+                                    hidden service:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename"
+                                        >Cargo.toml (additional dependencies)</span
+                                    >
+                                </div>
+                                <pre><code><span class="code-keyword">[dependencies]</span>
+axum = <span class="code-string">"0.7"</span>
+tower = <span class="code-string">"0.4"</span></code></pre>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">onion_web_server.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+<span class="code-keyword">use</span> axum::{routing::get, Router};
+<span class="code-keyword">use</span> std::net::SocketAddr;
+
+<span class="code-keyword">async fn</span> <span class="code-function">index</span>() -> &'<span class="code-keyword">static</span> <span class="code-type">str</span> {
+    <span class="code-string">"Welcome to the hidden service! 🧅"</span>
+}
+
+<span class="code-keyword">async fn</span> <span class="code-function">health</span>() -> &'<span class="code-keyword">static</span> <span class="code-type">str</span> {
+    <span class="code-string">"OK"</span>
+}
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Box&lt;<span class="code-keyword">dyn</span> std::error::Error&gt;&gt; {
+    <span class="code-comment">// Build the web application</span>
+    <span class="code-keyword">let</span> app = Router::<span class="code-function">new</span>()
+        .<span class="code-function">route</span>(<span class="code-string">"/"</span>, <span class="code-function">get</span>(index))
+        .<span class="code-function">route</span>(<span class="code-string">"/health"</span>, <span class="code-function">get</span>(health));
+    
+    <span class="code-keyword">let</span> addr = SocketAddr::<span class="code-function">from</span>(([<span class="code-number">127</span>, <span class="code-number">0</span>, <span class="code-number">0</span>, <span class="code-number">1</span>], <span class="code-number">8080</span>));
+    
+    <span class="code-comment">// Start the web server</span>
+    <span class="code-keyword">let</span> server = tokio::<span class="code-function">spawn</span>(<span class="code-keyword">async move</span> {
+        <span class="code-keyword">let</span> listener = tokio::net::TcpListener::<span class="code-function">bind</span>(addr).<span class="code-keyword">await</span>.<span class="code-function">unwrap</span>();
+        axum::<span class="code-function">serve</span>(listener, app).<span class="code-keyword">await</span>.<span class="code-function">unwrap</span>();
+    });
+    
+    <span class="code-comment">// Create the hidden service</span>
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-keyword">let</span> response = controller.<span class="code-function">create_ephemeral_hidden_service</span>(
+        &[(<span class="code-number">80</span>, <span class="code-string">"127.0.0.1:8080"</span>)],
+        <span class="code-string">"NEW"</span>,
+        <span class="code-string">"ED25519-V3"</span>,
+        &[],
+    ).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"🧅 Service available at: http://{}.onion"</span>, response.service_id);
+    <span class="code-function">println!</span>(<span class="code-string">"   Local access: http://127.0.0.1:8080"</span>);
+    
+    <span class="code-comment">// Wait for shutdown signal</span>
+    tokio::signal::<span class="code-function">ctrl_c</span>().<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Cleanup</span>
+    controller.<span class="code-function">remove_ephemeral_hidden_service</span>(&response.service_id).<span class="code-keyword">await</span>?;
+    server.<span class="code-function">abort</span>();
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\nService stopped."</span>);
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="descriptors" class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">📄</div>
+                        <div class="tutorial-meta">
+                            <h2 class="tutorial-title">
+                                Network Descriptors
+                                <a href="#descriptors" class="tutorial-title-anchor">#</a>
+                            </h2>
+                            <p class="tutorial-subtitle">
+                                Parse and analyze Tor network descriptors. Access relay metadata,
+                                consensus documents, bandwidth statistics, and build network
+                                analysis tools.
+                            </p>
+                            <div class="tutorial-tags">
+                                <span class="tutorial-tag">Consensus</span>
+                                <span class="tutorial-tag">Server Descriptors</span>
+                                <span class="tutorial-tag">Microdescriptors</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-content">
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">1</span>
+                                    Descriptor Types
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    The Tor network publishes several types of descriptors
+                                    containing relay information:
+                                </p>
+
+                                <div class="descriptor-grid">
+                                    <div class="descriptor-item">
+                                        <div class="descriptor-icon">📋</div>
+                                        <div class="descriptor-info">
+                                            <div class="descriptor-name">Server Descriptor</div>
+                                            <div class="descriptor-desc">
+                                                Full relay metadata including keys, policies, and
+                                                bandwidth
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="descriptor-item">
+                                        <div class="descriptor-icon">📝</div>
+                                        <div class="descriptor-info">
+                                            <div class="descriptor-name">Microdescriptor</div>
+                                            <div class="descriptor-desc">
+                                                Compact client-side info for circuit building
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="descriptor-item">
+                                        <div class="descriptor-icon">📊</div>
+                                        <div class="descriptor-info">
+                                            <div class="descriptor-name">Consensus</div>
+                                            <div class="descriptor-desc">
+                                                Network status document listing all relays
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="descriptor-item">
+                                        <div class="descriptor-icon">📈</div>
+                                        <div class="descriptor-info">
+                                            <div class="descriptor-name">Extra-Info</div>
+                                            <div class="descriptor-desc">
+                                                Bandwidth statistics and additional metrics
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="descriptor-item">
+                                        <div class="descriptor-icon">🧅</div>
+                                        <div class="descriptor-info">
+                                            <div class="descriptor-name">Hidden Service</div>
+                                            <div class="descriptor-desc">
+                                                Onion service descriptors (v3)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">2</span>
+                                    Downloading the Network Consensus
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    The consensus is the authoritative document listing all relays
+                                    in the network:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">consensus_analysis.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::descriptor::{download_consensus, NetworkStatusDocument};
+<span class="code-keyword">use</span> stem_rs::{Error, Flag};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-function">println!</span>(<span class="code-string">"Downloading consensus from directory authorities..."</span>);
+    
+    <span class="code-keyword">let</span> consensus = <span class="code-function">download_consensus</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\n📋 Consensus Information:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"   Valid after: {}"</span>, consensus.valid_after);
+    <span class="code-function">println!</span>(<span class="code-string">"   Valid until: {}"</span>, consensus.valid_until);
+    <span class="code-function">println!</span>(<span class="code-string">"   Total relays: {}"</span>, consensus.routers.<span class="code-function">len</span>());
+    
+    <span class="code-comment">// Count relays by flag</span>
+    <span class="code-keyword">let mut</span> guards = <span class="code-number">0</span>;
+    <span class="code-keyword">let mut</span> exits = <span class="code-number">0</span>;
+    <span class="code-keyword">let mut</span> fast = <span class="code-number">0</span>;
+    <span class="code-keyword">let mut</span> stable = <span class="code-number">0</span>;
+    
+    <span class="code-keyword">for</span> router <span class="code-keyword">in</span> &consensus.routers {
+        <span class="code-keyword">if</span> router.flags.<span class="code-function">contains</span>(&Flag::Guard) { guards += <span class="code-number">1</span>; }
+        <span class="code-keyword">if</span> router.flags.<span class="code-function">contains</span>(&Flag::Exit) { exits += <span class="code-number">1</span>; }
+        <span class="code-keyword">if</span> router.flags.<span class="code-function">contains</span>(&Flag::Fast) { fast += <span class="code-number">1</span>; }
+        <span class="code-keyword">if</span> router.flags.<span class="code-function">contains</span>(&Flag::Stable) { stable += <span class="code-number">1</span>; }
+    }
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\n📊 Relay Statistics:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"   Guards: {}"</span>, guards);
+    <span class="code-function">println!</span>(<span class="code-string">"   Exits:  {}"</span>, exits);
+    <span class="code-function">println!</span>(<span class="code-string">"   Fast:   {}"</span>, fast);
+    <span class="code-function">println!</span>(<span class="code-string">"   Stable: {}"</span>, stable);
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                            <div class="content-block-body">
+                                <div class="output-preview">
+                                    <span class="output-label">Output</span>
+                                    <pre>
+📋 Consensus Information:
+   Valid after: 2024-01-15 12:00:00
+   Valid until: 2024-01-15 15:00:00
+   Total relays: 6847
+
+📊 Relay Statistics:
+   Guards: 2341
+   Exits:  1523
+   Fast:   5892
+   Stable: 5234</pre
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">3</span>
+                                    Finding High-Bandwidth Exit Relays
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Analyze server descriptors to find the highest-bandwidth exit
+                                    relays:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">top_exits.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::descriptor::{download_server_descriptors, ServerDescriptor, Descriptor};
+<span class="code-keyword">use</span> stem_rs::Error;
+<span class="code-keyword">use</span> std::collections::BinaryHeap;
+
+<span class="code-keyword">fn</span> <span class="code-function">format_bandwidth</span>(bytes: <span class="code-type">u64</span>) -> <span class="code-type">String</span> {
+    <span class="code-keyword">const</span> MB: <span class="code-type">u64</span> = <span class="code-number">1024</span> * <span class="code-number">1024</span>;
+    <span class="code-keyword">const</span> GB: <span class="code-type">u64</span> = MB * <span class="code-number">1024</span>;
+    
+    <span class="code-keyword">if</span> bytes >= GB {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} GB/s"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / GB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    } <span class="code-keyword">else</span> {
+        <span class="code-function">format!</span>(<span class="code-string">"{:.2} MB/s"</span>, bytes <span class="code-keyword">as</span> <span class="code-type">f64</span> / MB <span class="code-keyword">as</span> <span class="code-type">f64</span>)
+    }
+}
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-function">println!</span>(<span class="code-string">"Downloading server descriptors..."</span>);
+    
+    <span class="code-keyword">let</span> descriptors = <span class="code-function">download_server_descriptors</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Collect exit relays with bandwidth</span>
+    <span class="code-keyword">let mut</span> exits: <span class="code-type">Vec</span>&lt;(&<span class="code-type">str</span>, &<span class="code-type">str</span>, <span class="code-type">u64</span>)&gt; = <span class="code-type">Vec</span>::<span class="code-function">new</span>();
+    
+    <span class="code-keyword">for</span> desc <span class="code-keyword">in</span> &descriptors {
+        <span class="code-keyword">if</span> desc.exit_policy.<span class="code-function">is_exiting_allowed</span>() {
+            <span class="code-comment">// Advertised bandwidth is min of avg, burst, and observed</span>
+            <span class="code-keyword">let</span> advertised = desc.bandwidth_avg
+                .<span class="code-function">min</span>(desc.bandwidth_burst)
+                .<span class="code-function">min</span>(desc.bandwidth_observed);
+            
+            exits.<span class="code-function">push</span>((&desc.nickname, &desc.fingerprint, advertised));
+        }
+    }
+    
+    <span class="code-comment">// Sort by bandwidth (descending)</span>
+    exits.<span class="code-function">sort_by</span>(|a, b| b.<span class="code-number">2</span>.<span class="code-function">cmp</span>(&a.<span class="code-number">2</span>));
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\n🏆 Top 10 Exit Relays by Bandwidth:\n"</span>);
+    
+    <span class="code-keyword">for</span> (i, (nickname, fingerprint, bandwidth)) <span class="code-keyword">in</span> exits.<span class="code-function">iter</span>().<span class="code-function">take</span>(<span class="code-number">10</span>).<span class="code-function">enumerate</span>() {
+        <span class="code-function">println!</span>(
+            <span class="code-string">"{:>2}. {} ({}) - {}"</span>,
+            i + <span class="code-number">1</span>,
+            nickname,
+            &fingerprint[..<span class="code-number">8</span>],
+            <span class="code-function">format_bandwidth</span>(*bandwidth)
+        );
+    }
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">4</span>
+                                    Parsing Local Descriptor Files
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Parse descriptors from Tor's cached files or your own archives:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">parse_local.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::descriptor::{parse_file, ServerDescriptor, Descriptor};
+<span class="code-keyword">use</span> stem_rs::descriptor::{DigestHash, DigestEncoding};
+<span class="code-keyword">use</span> stem_rs::Error;
+<span class="code-keyword">use</span> std::fs;
+
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-comment">// Read from Tor's cached descriptors</span>
+    <span class="code-keyword">let</span> content = fs::<span class="code-function">read</span>(<span class="code-string">"/var/lib/tor/cached-descriptors"</span>)
+        .<span class="code-function">map_err</span>(|e| Error::<span class="code-function">Protocol</span>(<span class="code-function">format!</span>(<span class="code-string">"Failed to read file: {}"</span>, e)))?;
+    
+    <span class="code-keyword">let</span> descriptor: ServerDescriptor = <span class="code-function">parse_file</span>(&content)?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"📄 Server Descriptor:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"   Nickname: {}"</span>, descriptor.nickname);
+    <span class="code-function">println!</span>(<span class="code-string">"   Address: {}:{}"</span>, descriptor.address, descriptor.or_port);
+    <span class="code-function">println!</span>(<span class="code-string">"   Fingerprint: {}"</span>, descriptor.fingerprint);
+    <span class="code-function">println!</span>(<span class="code-string">"   Platform: {:?}"</span>, descriptor.platform);
+    <span class="code-function">println!</span>(<span class="code-string">"   Published: {}"</span>, descriptor.published);
+    
+    <span class="code-comment">// Compute descriptor digest</span>
+    <span class="code-keyword">let</span> digest = descriptor.<span class="code-function">digest</span>(DigestHash::Sha1, DigestEncoding::Hex)?;
+    <span class="code-function">println!</span>(<span class="code-string">"   Digest (SHA1): {}"</span>, digest);
+    
+    <span class="code-comment">// Check exit policy</span>
+    <span class="code-function">println!</span>(<span class="code-string">"\n🚪 Exit Policy:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"   Allows exiting: {}"</span>, descriptor.exit_policy.<span class="code-function">is_exiting_allowed</span>());
+    <span class="code-function">println!</span>(<span class="code-string">"   Summary: {}"</span>, descriptor.exit_policy.<span class="code-function">summary</span>());
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="utilities" class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🔧</div>
+                        <div class="tutorial-meta">
+                            <h2 class="tutorial-title">
+                                Utility Functions
+                                <a href="#utilities" class="tutorial-title-anchor">#</a>
+                            </h2>
+                            <p class="tutorial-subtitle">
+                                Helper functions for working with Tor data including exit policy
+                                evaluation, version comparison, validation utilities, and digest
+                                computation.
+                            </p>
+                            <div class="tutorial-tags">
+                                <span class="tutorial-tag">Exit Policy</span>
+                                <span class="tutorial-tag">Version</span>
+                                <span class="tutorial-tag">Validation</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-content">
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">1</span>
+                                    Exit Policy Evaluation
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Parse and evaluate exit policies to determine what traffic a
+                                    relay allows:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">exit_policy.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::exit_policy::{ExitPolicy, ExitPolicyRule, MicroExitPolicy};
+<span class="code-keyword">use</span> std::net::IpAddr;
+
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), stem_rs::Error&gt; {
+    <span class="code-comment">// Parse a full exit policy</span>
+    <span class="code-keyword">let</span> policy = ExitPolicy::<span class="code-function">parse</span>(
+        <span class="code-string">"accept *:80, accept *:443, accept *:8080-8090, reject *:*"</span>
+    )?;
+    
+    <span class="code-keyword">let</span> addr: IpAddr = <span class="code-string">"93.184.216.34"</span>.<span class="code-function">parse</span>().<span class="code-function">unwrap</span>();
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Exit Policy Evaluation:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  Port 80 (HTTP):   {}"</span>, 
+        <span class="code-keyword">if</span> policy.<span class="code-function">can_exit_to</span>(addr, <span class="code-number">80</span>) { <span class="code-string">"✅ Allowed"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Blocked"</span> });
+    <span class="code-function">println!</span>(<span class="code-string">"  Port 443 (HTTPS): {}"</span>, 
+        <span class="code-keyword">if</span> policy.<span class="code-function">can_exit_to</span>(addr, <span class="code-number">443</span>) { <span class="code-string">"✅ Allowed"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Blocked"</span> });
+    <span class="code-function">println!</span>(<span class="code-string">"  Port 22 (SSH):    {}"</span>, 
+        <span class="code-keyword">if</span> policy.<span class="code-function">can_exit_to</span>(addr, <span class="code-number">22</span>) { <span class="code-string">"✅ Allowed"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Blocked"</span> });
+    <span class="code-function">println!</span>(<span class="code-string">"  Port 8085:        {}"</span>, 
+        <span class="code-keyword">if</span> policy.<span class="code-function">can_exit_to</span>(addr, <span class="code-number">8085</span>) { <span class="code-string">"✅ Allowed"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Blocked"</span> });
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\nPolicy summary: {}"</span>, policy.<span class="code-function">summary</span>());
+    <span class="code-function">println!</span>(<span class="code-string">"Allows any exit: {}"</span>, policy.<span class="code-function">is_exiting_allowed</span>());
+    
+    <span class="code-comment">// Parse individual rules</span>
+    <span class="code-keyword">let</span> rule = ExitPolicyRule::<span class="code-function">parse</span>(<span class="code-string">"reject 10.0.0.0/8:*"</span>)?;
+    <span class="code-function">println!</span>(<span class="code-string">"\nRule rejects private IPs: {}"</span>, !rule.is_accept);
+    
+    <span class="code-comment">// Microdescriptor policies (port-only)</span>
+    <span class="code-keyword">let</span> micro = MicroExitPolicy::<span class="code-function">parse</span>(<span class="code-string">"accept 80,443,8080-8090"</span>)?;
+    <span class="code-function">println!</span>(<span class="code-string">"Micro policy allows port 80: {}"</span>, micro.<span class="code-function">can_exit_to</span>(<span class="code-number">80</span>));
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                            <div class="content-block-body">
+                                <div class="output-preview">
+                                    <span class="output-label">Output</span>
+                                    <pre>
+Exit Policy Evaluation:
+  Port 80 (HTTP):   ✅ Allowed
+  Port 443 (HTTPS): ✅ Allowed
+  Port 22 (SSH):    ❌ Blocked
+  Port 8085:        ✅ Allowed
+
+Policy summary: accept 80,443,8080-8090
+Allows any exit: true</pre
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">2</span>
+                                    Version Parsing and Comparison
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Parse Tor version strings and compare them for feature
+                                    detection:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">version_check.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::Version;
+
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), stem_rs::Error&gt; {
+    <span class="code-keyword">let</span> v1 = Version::<span class="code-function">parse</span>(<span class="code-string">"0.4.7.10"</span>)?;
+    <span class="code-keyword">let</span> v2 = Version::<span class="code-function">parse</span>(<span class="code-string">"0.4.8.0"</span>)?;
+    <span class="code-keyword">let</span> v3 = Version::<span class="code-function">parse</span>(<span class="code-string">"0.4.7.10-dev"</span>)?;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Version comparisons:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  {} &lt; {}: {}"</span>, v1, v2, v1 &lt; v2);
+    <span class="code-function">println!</span>(<span class="code-string">"  {} == {}: {}"</span>, v1, v3, v1 == v3);
+    <span class="code-function">println!</span>(<span class="code-string">"  {} >= 0.4.0.0: {}"</span>, v1, v1 >= Version::<span class="code-function">parse</span>(<span class="code-string">"0.4.0.0"</span>)?);
+    
+    <span class="code-comment">// Check feature availability</span>
+    <span class="code-keyword">let</span> min_v3_onion = Version::<span class="code-function">parse</span>(<span class="code-string">"0.3.2.1"</span>)?;
+    <span class="code-keyword">if</span> v1 >= min_v3_onion {
+        <span class="code-function">println!</span>(<span class="code-string">"\n✅ Tor {} supports v3 onion services"</span>, v1);
+    }
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">3</span>
+                                    Validation Utilities
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Validate Tor-specific identifiers like fingerprints and
+                                    nicknames:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">validation.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::util::{is_valid_fingerprint, is_valid_nickname};
+
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() {
+    <span class="code-comment">// Fingerprint validation (40 hex characters)</span>
+    <span class="code-keyword">let</span> valid_fp = <span class="code-string">"9695DFC35FFEB861329B9F1AB04C46397020CE31"</span>;
+    <span class="code-keyword">let</span> invalid_fp = <span class="code-string">"not-a-fingerprint"</span>;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"Fingerprint validation:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  '{}': {}"</span>, valid_fp, 
+        <span class="code-keyword">if</span> <span class="code-function">is_valid_fingerprint</span>(valid_fp) { <span class="code-string">"✅ Valid"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Invalid"</span> });
+    <span class="code-function">println!</span>(<span class="code-string">"  '{}': {}"</span>, invalid_fp, 
+        <span class="code-keyword">if</span> <span class="code-function">is_valid_fingerprint</span>(invalid_fp) { <span class="code-string">"✅ Valid"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Invalid"</span> });
+    
+    <span class="code-comment">// Nickname validation (1-19 alphanumeric characters)</span>
+    <span class="code-keyword">let</span> valid_nick = <span class="code-string">"MyRelay123"</span>;
+    <span class="code-keyword">let</span> invalid_nick = <span class="code-string">"way-too-long-nickname-for-tor"</span>;
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\nNickname validation:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  '{}': {}"</span>, valid_nick, 
+        <span class="code-keyword">if</span> <span class="code-function">is_valid_nickname</span>(valid_nick) { <span class="code-string">"✅ Valid"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Invalid"</span> });
+    <span class="code-function">println!</span>(<span class="code-string">"  '{}': {}"</span>, invalid_nick, 
+        <span class="code-keyword">if</span> <span class="code-function">is_valid_nickname</span>(invalid_nick) { <span class="code-string">"✅ Valid"</span> } <span class="code-keyword">else</span> { <span class="code-string">"❌ Invalid"</span> });
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">4</span>
+                                    Digest Computation
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>
+                                    Compute cryptographic digests used by Tor for descriptor
+                                    identification:
+                                </p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">digests.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::descriptor::{compute_digest, DigestHash, DigestEncoding};
+
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() {
+    <span class="code-keyword">let</span> content = <span class="code-string">b"Example descriptor content"</span>;
+    
+    <span class="code-comment">// SHA-1 digest (used by legacy descriptors)</span>
+    <span class="code-keyword">let</span> sha1_hex = <span class="code-function">compute_digest</span>(content, DigestHash::Sha1, DigestEncoding::Hex);
+    <span class="code-keyword">let</span> sha1_b64 = <span class="code-function">compute_digest</span>(content, DigestHash::Sha1, DigestEncoding::Base64);
+    
+    <span class="code-function">println!</span>(<span class="code-string">"SHA-1 digests:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  Hex:    {}"</span>, sha1_hex);
+    <span class="code-function">println!</span>(<span class="code-string">"  Base64: {}"</span>, sha1_b64);
+    
+    <span class="code-comment">// SHA-256 digest (used by modern descriptors)</span>
+    <span class="code-keyword">let</span> sha256_hex = <span class="code-function">compute_digest</span>(content, DigestHash::Sha256, DigestEncoding::Hex);
+    
+    <span class="code-function">println!</span>(<span class="code-string">"\nSHA-256 digest:"</span>);
+    <span class="code-function">println!</span>(<span class="code-string">"  Hex: {}"</span>, sha256_hex);
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">5</span>
+                                    Configuration Management
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>Read and modify Tor's runtime configuration:</p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">config_management.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// Read current configuration</span>
+    <span class="code-keyword">let</span> socks_ports = controller.<span class="code-function">get_conf</span>(<span class="code-string">"SocksPort"</span>).<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Current SOCKS ports: {:?}"</span>, socks_ports);
+    
+    <span class="code-comment">// Modify configuration (temporary, not saved to torrc)</span>
+    controller.<span class="code-function">set_conf</span>(<span class="code-string">"MaxCircuitDirtiness"</span>, <span class="code-string">"600"</span>).<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Set MaxCircuitDirtiness to 600 seconds"</span>);
+    
+    <span class="code-comment">// Reset to default value</span>
+    controller.<span class="code-function">reset_conf</span>(<span class="code-string">"MaxCircuitDirtiness"</span>).<span class="code-keyword">await</span>?;
+    <span class="code-function">println!</span>(<span class="code-string">"Reset MaxCircuitDirtiness to default"</span>);
+    
+    <span class="code-comment">// Load configuration from text</span>
+    controller.<span class="code-function">load_conf</span>(<span class="code-string">"
+        # Temporary configuration
+        MaxCircuitDirtiness 300
+    "</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-block">
+                            <div class="content-block-header">
+                                <div class="content-block-title">
+                                    <span class="content-block-title-icon">6</span>
+                                    Stream and Circuit Inspection
+                                </div>
+                            </div>
+                            <div class="content-block-body">
+                                <p>List and inspect active streams and circuits:</p>
+                            </div>
+                            <div class="code-block">
+                                <div class="code-block-header">
+                                    <span class="code-block-filename">inspect_connections.rs</span>
+                                </div>
+                                <pre><code><span class="code-keyword">use</span> stem_rs::{Controller, Error, StreamStatus, CircStatus};
+
+<span class="code-macro">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), Error&gt; {
+    <span class="code-keyword">let mut</span> controller = Controller::<span class="code-function">from_port</span>(
+        <span class="code-string">"127.0.0.1:9051"</span>.<span class="code-function">parse</span>()?
+    ).<span class="code-keyword">await</span>?;
+    controller.<span class="code-function">authenticate</span>(<span class="code-type">None</span>).<span class="code-keyword">await</span>?;
+    
+    <span class="code-comment">// List all streams</span>
+    <span class="code-function">println!</span>(<span class="code-string">"📡 Active Streams:"</span>);
+    <span class="code-keyword">let</span> streams = controller.<span class="code-function">get_streams</span>().<span class="code-keyword">await</span>?;
+    <span class="code-keyword">for</span> stream <span class="code-keyword">in</span> &streams {
+        <span class="code-keyword">let</span> status = <span class="code-keyword">match</span> stream.status {
+            StreamStatus::New => <span class="code-string">"🆕"</span>,
+            StreamStatus::Succeeded => <span class="code-string">"✅"</span>,
+            StreamStatus::Failed => <span class="code-string">"❌"</span>,
+            StreamStatus::Closed => <span class="code-string">"🔒"</span>,
+            _ => <span class="code-string">"❓"</span>,
+        };
+        <span class="code-function">println!</span>(
+            <span class="code-string">"  {} Stream {} → {}:{} (circuit: {:?})"</span>,
+            status, stream.id, stream.target_host, stream.target_port, stream.circuit_id
+        );
+    }
+    
+    <span class="code-comment">// List all circuits</span>
+    <span class="code-function">println!</span>(<span class="code-string">"\n🔄 Active Circuits:"</span>);
+    <span class="code-keyword">let</span> circuits = controller.<span class="code-function">get_circuits</span>().<span class="code-keyword">await</span>?;
+    <span class="code-keyword">for</span> circuit <span class="code-keyword">in</span> &circuits {
+        <span class="code-keyword">let</span> status = <span class="code-keyword">match</span> circuit.status {
+            CircStatus::Built => <span class="code-string">"✅"</span>,
+            CircStatus::Extended => <span class="code-string">"📡"</span>,
+            CircStatus::Failed => <span class="code-string">"❌"</span>,
+            _ => <span class="code-string">"❓"</span>,
+        };
+        <span class="code-function">println!</span>(
+            <span class="code-string">"  {} Circuit {} ({} hops)"</span>,
+            status, circuit.id, circuit.path.<span class="code-function">len</span>()
+        );
+    }
+    
+    <span class="code-type">Ok</span>(())
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <a href="#page-header" class="back-to-top" id="back-to-top" aria-label="Back to top">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </a>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-brand">
+                        <div class="footer-logo">stem-rs</div>
+                        <p class="footer-tagline">
+                            A Rust implementation of Stem for Tor control protocol interaction.
+                        </p>
+                    </div>
+                    <div class="footer-links">
+                        <a
+                            href="https://github.com/tn3w/stem-rs"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >GitHub</a
+                        >
+                        <a
+                            href="https://crates.io/crates/stem-rs"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >crates.io</a
+                        >
+                        <a href="docs/">Documentation</a>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p class="footer-copyright">
+                        © 2026 stem-rs contributors. Licensed under Apache-2.0.
+                    </p>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            const backToTop = document.getElementById('back-to-top');
+
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 500) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        const headerOffset = 140;
+                        const elementPosition = target.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth',
+                        });
+                    }
+                });
+            });
+
+            const sections = document.querySelectorAll('.tutorial-section');
+            const sidebarLinks = document.querySelectorAll('.sidebar-link');
+            const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '-20% 0px -70% 0px',
+                threshold: 0,
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+
+                        sidebarLinks.forEach((link) => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+
+                        mobileLinks.forEach((link) => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach((section) => observer.observe(section));
+
+            document.querySelectorAll('.code-copy-btn').forEach((btn) => {
+                btn.addEventListener('click', async function () {
+                    const codeId = this.dataset.code;
+                    const codeElement = document.getElementById(codeId);
+
+                    if (codeElement) {
+                        try {
+                            await navigator.clipboard.writeText(codeElement.textContent);
+                            this.classList.add('copied');
+                            this.textContent = 'Copied!';
+                            setTimeout(() => {
+                                this.classList.remove('copied');
+                                this.textContent = 'Copy';
+                            }, 2000);
+                        } catch (err) {
+                            console.error('Failed to copy:', err);
+                        }
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>
