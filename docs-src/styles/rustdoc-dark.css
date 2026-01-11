@@ -88,9 +88,7 @@ nav.sidebar {
     scrollbar-color: var(--rustdoc-border) transparent !important;
 }
 .sidebar-crate {
-    padding: 12px 16px !important;
-    margin-bottom: 16px !important;
-    border-bottom: 1px solid var(--rustdoc-border) !important;
+    margin: 0px !important;
 }
 .sidebar-crate h2,
 .sidebar-crate .crate-name {
@@ -99,6 +97,16 @@ nav.sidebar {
     color: var(--rustdoc-text) !important;
     letter-spacing: -0.02em !important;
 }
+
+.sidebar-crate h2 a {
+    color: var(--rustdoc-text) !important;
+    text-decoration: none !important;
+    transition: color var(--rustdoc-duration-fast) var(--rustdoc-ease) !important;
+}
+
+.sidebar-crate h2 a:hover {
+    color: var(--rustdoc-accent) !important;
+}
 .sidebar-crate .version {
     font-family: var(--rustdoc-font-mono) !important;
     font-size: 0.75rem !important;
@@ -106,7 +114,6 @@ nav.sidebar {
     background: var(--rustdoc-bg-elevated) !important;
     padding: 2px 8px !important;
     border-radius: var(--rustdoc-radius-sm) !important;
-    margin-left: 8px !important;
 }
 .sidebar-elems,
 .sidebar ul {
@@ -125,8 +132,6 @@ nav.sidebar {
     color: var(--rustdoc-text-muted) !important;
     text-transform: uppercase !important;
     letter-spacing: 0.08em !important;
-    padding: 8px 12px !important;
-    margin: 0 0 4px 0 !important;
 }
 .sidebar a,
 .sidebar-elems a {
@@ -152,8 +157,6 @@ nav.sidebar {
 .main-heading,
 .rustdoc .main-heading {
     border-bottom: 1px solid var(--rustdoc-border) !important;
-    padding-bottom: 20px !important;
-    margin-bottom: 32px !important;
 }
 .main-heading h1,
 .rustdoc h1.fqn {
@@ -526,8 +529,6 @@ button,
     border: 1px solid var(--rustdoc-border) !important;
     border-radius: var(--rustdoc-radius) !important;
     color: var(--rustdoc-text-secondary) !important;
-    padding: 8px 12px !important;
-    font-size: 0.875rem !important;
     font-family: var(--rustdoc-font-sans) !important;
     cursor: pointer !important;
     transition: all var(--rustdoc-duration-fast) var(--rustdoc-ease) !important;
@@ -580,31 +581,10 @@ button.primary:hover {
     font-size: 1rem !important;
 }
 details {
-    margin: 16px 0 !important;
+    margin: 0 !important;
 }
 details summary {
-    color: var(--rustdoc-text-secondary) !important;
-    cursor: pointer !important;
-    padding: 8px 0 !important;
-    font-weight: 500 !important;
-    transition: color var(--rustdoc-duration-fast) var(--rustdoc-ease) !important;
-    list-style: none !important;
-}
-details summary::-webkit-details-marker {
     display: none !important;
-}
-details summary::before {
-    content: '▶' !important;
-    display: inline-block !important;
-    margin-right: 8px !important;
-    font-size: 0.75rem !important;
-    transition: transform var(--rustdoc-duration-fast) var(--rustdoc-ease) !important;
-}
-details[open] summary::before {
-    transform: rotate(90deg) !important;
-}
-details summary:hover {
-    color: var(--rustdoc-text) !important;
 }
 .toggle-wrapper,
 .collapse-toggle {
