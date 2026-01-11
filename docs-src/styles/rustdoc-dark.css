@@ -582,9 +582,6 @@ button.primary:hover {
 details {
     margin: 0 !important;
 }
-details summary {
-    display: none !important;
-}
 .toggle-wrapper,
 .collapse-toggle {
     color: var(--rustdoc-text-secondary) !important;
