@@ -574,7 +574,6 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
         </footer>
 
         <script>
-            // Hide static fallback, show typing animation
             const staticCode = document.getElementById('static-demo-code');
             const typingContainer = document.getElementById('typing-container');
             if (staticCode) staticCode.style.display = 'none';
@@ -713,7 +712,6 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
 
             function appendChar(char, cls) {
                 if (cls) {
-                    // Styled text - need a span
                     if (
                         currentClass === cls &&
                         currentNode &&
@@ -729,7 +727,6 @@ ctrl.<span class="code-function">set_events</span>(&amp;[
                         currentClass = cls;
                     }
                 } else {
-                    // Plain text - need a text node
                     if (
                         currentClass === null &&
                         currentNode &&
