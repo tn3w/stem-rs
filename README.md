@@ -155,7 +155,7 @@ Add stem-rs to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stem-rs = "1"
+stem-rs = "1.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
