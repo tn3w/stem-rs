@@ -155,6 +155,7 @@ jobs:
           
           cp docs-src/dist-template.html docs/dist/index.html
           sed -i "s|<!-- FILE_LIST_PLACEHOLDER -->|${FILE_ROWS}|g" docs/dist/index.html
+          sed -i "s|>VERSION</span>|>v${VERSION}</span>|g" docs/dist/index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
