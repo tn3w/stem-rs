@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="robots" content="noindex" />
+        <title>404 — Lost in the Onion Layers | stem-rs</title>
+        <style>
+            :root {
+                --background: #09090b;
+                --background-elevated: #18181b;
+                --border: #27272a;
+                --text: #fafafa;
+                --text-secondary: #a1a1aa;
+                --text-muted: #52525b;
+                --accent: #a78bfa;
+                --accent-hover: #c4b5fd;
+                --purple-dark: #7c3aed;
+                --purple-medium: #a78bfa;
+                --purple-light: #ddd6fe;
+                --red: #ef4444;
+            }
+
+            @media (prefers-color-scheme: light) {
+                :root {
+                    --background: #fafafa;
+                    --background-elevated: #ffffff;
+                    --border: #e4e4e7;
+                    --text: #18181b;
+                    --text-secondary: #52525b;
+                    --text-muted: #a1a1aa;
+                    --accent: #7c3aed;
+                    --accent-hover: #6d28d9;
+                }
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    sans-serif;
+                background: var(--background);
+                color: var(--text);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                text-align: center;
+            }
+
+            .error-code {
+                font-family: 'JetBrains Mono', 'Fira Code', monospace;
+                font-size: 10rem;
+                font-weight: 700;
+                line-height: 1;
+                margin-bottom: 1.5rem;
+                background: linear-gradient(
+                    135deg,
+                    var(--purple-dark),
+                    var(--purple-medium),
+                    var(--purple-light)
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            h1 {
+                font-size: 2rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            }
+
+            .brand {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.75rem;
+                font-weight: 500;
+                margin-top: 2.5rem;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .brand::before,
+            .brand::after {
+                content: '';
+                width: 3rem;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, var(--border));
+            }
+
+            .brand::after {
+                background: linear-gradient(90deg, var(--border), transparent);
+            }
+
+            .brand a {
+                color: var(--text-muted);
+                text-decoration: none;
+                background: linear-gradient(135deg, var(--purple-dark), var(--purple-medium));
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+                transition: opacity 0.2s;
+            }
+
+            .brand a:hover {
+                opacity: 0.7;
+            }
+
+            p {
+                font-size: 1.125rem;
+                color: var(--text-secondary);
+                max-width: 440px;
+                margin: 0 auto 2rem;
+                line-height: 1.6;
+            }
+
+            .circuit {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.875rem;
+                color: var(--text);
+                background: var(--background-elevated);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 0.75rem 1.25rem;
+                margin-bottom: 2rem;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .circuit svg {
+                width: 14px;
+                height: 14px;
+                color: var(--accent);
+                flex-shrink: 0;
+            }
+
+            .actions {
+                display: flex;
+                gap: 1rem;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .button {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.5rem;
+                font-size: 0.875rem;
+                font-weight: 500;
+                border-radius: 8px;
+                text-decoration: none;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .button-primary {
+                background: var(--accent);
+                color: white;
+            }
+
+            .button-primary:hover {
+                background: var(--accent-hover);
+                transform: translateY(-2px);
+            }
+
+            .button-secondary {
+                background: var(--background-elevated);
+                color: var(--text);
+                border: 1px solid var(--border);
+            }
+
+            .button-secondary:hover {
+                border-color: var(--accent);
+                color: var(--accent);
+            }
+
+            .background-circuits {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                opacity: 0.03;
+                z-index: -1;
+            }
+
+            .circuit-line {
+                stroke: var(--purple-light);
+                stroke-width: 1;
+                fill: none;
+                stroke-dasharray: 8 4;
+                animation: dash 20s linear infinite;
+            }
+
+            @keyframes dash {
+                to {
+                    stroke-dashoffset: -100;
+                }
+            }
+
+            #game-trigger {
+                cursor: pointer;
+                color: var(--accent);
+                transition: all 0.2s;
+            }
+
+            #game-trigger:hover {
+                text-shadow: 0 0 8px var(--accent);
+            }
+
+            #game-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.95);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                z-index: 1000;
+            }
+
+            #game-overlay.active {
+                display: flex;
+            }
+
+            #game-canvas {
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: var(--background);
+                max-width: 100%;
+                touch-action: none;
+            }
+
+            #game-ui {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+                margin-bottom: 1rem;
+                display: flex;
+                gap: 2rem;
+            }
+
+            #game-ui span {
+                color: var(--accent);
+            }
+
+            #game-close {
+                position: absolute;
+                top: 1.5rem;
+                right: 1.5rem;
+                background: none;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                color: var(--text-muted);
+                padding: 0.5rem 1rem;
+                cursor: pointer;
+                font-family: inherit;
+                font-size: 0.75rem;
+                transition: all 0.2s;
+            }
+
+            #game-close:hover {
+                border-color: var(--accent);
+                color: var(--accent);
+            }
+
+            #game-instructions {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                margin-top: 1rem;
+                font-family: 'JetBrains Mono', monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <svg class="background-circuits" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path class="circuit-line" d="M0,20 Q25,10 50,20 T100,20" />
+            <path
+                class="circuit-line"
+                d="M0,50 Q30,40 60,50 T100,50"
+                style="animation-delay: -5s"
+            />
+            <path
+                class="circuit-line"
+                d="M0,80 Q35,70 70,80 T100,80"
+                style="animation-delay: -10s"
+            />
+        </svg>
+
+        <div id="game-overlay">
+            <button id="game-close">ESC to close</button>
+            <div id="game-ui">
+                <div>Packets: <span id="score">0</span></div>
+                <div>Hops: <span id="hops">3</span></div>
+                <div>Speed: <span id="speed">1</span>x</div>
+                <div>Best: <span id="highscore">0</span></div>
+            </div>
+            <canvas id="game-canvas" width="400" height="500"></canvas>
+            <div id="game-instructions">
+                ← → or drag to move relay • catch packets, avoid trackers
+            </div>
+        </div>
+
+        <div>
+            <div class="error-code">404</div>
+            <h1>Lost in the Onion Layers</h1>
+            <p>
+                Your request got lost somewhere between the guard, middle, and exit relays. The
+                circuit couldn't find this page.
+            </p>
+            <div class="circuit">
+                guard
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                middle
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                exit
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                <span id="game-trigger">???</span>
+            </div>
+            <div class="actions">
+                <a href="/" class="button button-primary">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    Back to Safety
+                </a>
+                <a href="/docs/" class="button button-secondary">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                    Read the Docs
+                </a>
+            </div>
+            <div class="brand"><a href="/">stem-rs</a></div>
+        </div>
+
+        <script>
+            const STORAGE_KEY = 'stem-rs-404-highscore';
+            const CANVAS_WIDTH = 400;
+            const CANVAS_HEIGHT = 500;
+            const RELAY_WIDTH = 60;
+            const RELAY_HEIGHT = 12;
+            const PACKET_RADIUS = 8;
+            const TRACKER_RADIUS = 12;
+            const INITIAL_HOPS = 3;
+            const SPEED_INCREMENT = 0.2;
+            const PACKETS_PER_SPEED_LEVEL = 10;
+
+            const colors = {
+                packet: '#a78bfa',
+                tracker: '#ef4444',
+                relay: '#7c3aed',
+                particle: '#c4b5fd',
+            };
+
+            const elements = {
+                trigger: document.getElementById('game-trigger'),
+                overlay: document.getElementById('game-overlay'),
+                canvas: document.getElementById('game-canvas'),
+                closeButton: document.getElementById('game-close'),
+                scoreDisplay: document.getElementById('score'),
+                hopsDisplay: document.getElementById('hops'),
+                speedDisplay: document.getElementById('speed'),
+                highscoreDisplay: document.getElementById('highscore'),
+            };
+
+            const context = elements.canvas.getContext('2d');
+
+            let gameState = createInitialState();
+            let isDragging = false;
+
+            function createInitialState() {
+                return {
+                    running: false,
+                    score: 0,
+                    hops: INITIAL_HOPS,
+                    speed: 1,
+                    highscore: loadHighscore(),
+                    relay: { x: CANVAS_WIDTH / 2 },
+                    packets: [],
+                    trackers: [],
+                    particles: [],
+                };
+            }
+
+            function loadHighscore() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                return stored ? parseInt(stored, 10) : 0;
+            }
+
+            function saveHighscore(score) {
+                localStorage.setItem(STORAGE_KEY, score.toString());
+            }
+
+            function spawnEntities() {
+                if (Math.random() < 0.03 * gameState.speed) {
+                    spawnPacket();
+                }
+                if (Math.random() < 0.015 * gameState.speed) {
+                    spawnTracker();
+                }
+            }
+
+            function spawnPacket() {
+                gameState.packets.push({
+                    x: Math.random() * (CANVAS_WIDTH - 20) + 10,
+                    y: -20,
+                    radius: PACKET_RADIUS,
+                });
+            }
+
+            function spawnTracker() {
+                gameState.trackers.push({
+                    x: Math.random() * (CANVAS_WIDTH - 30) + 15,
+                    y: -25,
+                    radius: TRACKER_RADIUS,
+                    rotation: 0,
+                });
+            }
+
+            function createParticles(x, y, count, isBad) {
+                for (let i = 0; i < count; i++) {
+                    gameState.particles.push({
+                        x: x,
+                        y: y,
+                        velocityX: (Math.random() - 0.5) * (isBad ? 5 : 3),
+                        velocityY: isBad ? (Math.random() - 0.5) * 5 : -Math.random() * 3,
+                        life: isBad ? 40 : 30,
+                        isBad: isBad,
+                    });
+                }
+            }
+
+            function isCollidingWithRelay(entityX, entityRadius) {
+                const relayLeft = gameState.relay.x - RELAY_WIDTH / 2;
+                const relayRight = gameState.relay.x + RELAY_WIDTH / 2;
+                return entityX > relayLeft && entityX < relayRight;
+            }
+
+            function updatePackets() {
+                gameState.packets = gameState.packets.filter((packet) => {
+                    packet.y += 2 * gameState.speed;
+
+                    if (packet.y > CANVAS_HEIGHT) {
+                        return false;
+                    }
+
+                    const isAtRelayHeight = packet.y + packet.radius > CANVAS_HEIGHT - 30;
+                    if (!isAtRelayHeight) {
+                        return true;
+                    }
+
+                    if (!isCollidingWithRelay(packet.x, packet.radius)) {
+                        return true;
+                    }
+
+                    handlePacketCatch(packet);
+                    return false;
+                });
+            }
+
+            function handlePacketCatch(packet) {
+                gameState.score++;
+                gameState.speed =
+                    1 + Math.floor(gameState.score / PACKETS_PER_SPEED_LEVEL) * SPEED_INCREMENT;
+                createParticles(packet.x, packet.y, 5, false);
+
+                if (gameState.score > gameState.highscore) {
+                    gameState.highscore = gameState.score;
+                    saveHighscore(gameState.highscore);
+                }
+            }
+
+            function updateTrackers() {
+                gameState.trackers = gameState.trackers.filter((tracker) => {
+                    tracker.y += 1.5 * gameState.speed;
+                    tracker.rotation += 0.1;
+
+                    if (tracker.y > CANVAS_HEIGHT) {
+                        return false;
+                    }
+
+                    const isAtRelayHeight = tracker.y + tracker.radius > CANVAS_HEIGHT - 30;
+                    if (!isAtRelayHeight) {
+                        return true;
+                    }
+
+                    if (!isCollidingWithRelay(tracker.x, tracker.radius)) {
+                        return true;
+                    }
+
+                    handleTrackerHit(tracker);
+                    return false;
+                });
+            }
+
+            function handleTrackerHit(tracker) {
+                gameState.hops--;
+                createParticles(tracker.x, tracker.y, 8, true);
+
+                if (gameState.hops <= 0) {
+                    endGame();
+                }
+            }
+
+            function updateParticles() {
+                gameState.particles = gameState.particles.filter((particle) => {
+                    particle.x += particle.velocityX;
+                    particle.y += particle.velocityY;
+                    particle.life--;
+                    return particle.life > 0;
+                });
+            }
+
+            function update() {
+                updatePackets();
+                updateTrackers();
+                updateParticles();
+            }
+
+            function getBackgroundColor() {
+                return getComputedStyle(document.documentElement)
+                    .getPropertyValue('--background')
+                    .trim();
+            }
+
+            function drawBackground() {
+                context.fillStyle = getBackgroundColor();
+                context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+
+            function drawCircuitLines() {
+                context.strokeStyle = colors.packet + '20';
+                context.lineWidth = 1;
+
+                for (let i = 0; i < 3; i++) {
+                    context.beginPath();
+                    context.moveTo(50 + i * 150, 0);
+                    context.lineTo(50 + i * 150, CANVAS_HEIGHT);
+                    context.stroke();
+                }
+            }
+
+            function drawPacket(packet) {
+                const opacities = ['40', '80', 'ff'];
+
+                for (let layer = 3; layer > 0; layer--) {
+                    context.beginPath();
+                    context.arc(packet.x, packet.y, (packet.radius * layer) / 2, 0, Math.PI * 2);
+                    context.fillStyle = colors.packet + opacities[3 - layer];
+                    context.fill();
+                }
+            }
+
+            function drawTracker(tracker) {
+                context.save();
+                context.translate(tracker.x, tracker.y);
+                context.rotate(tracker.rotation);
+
+                context.beginPath();
+                context.moveTo(-tracker.radius, 0);
+                context.quadraticCurveTo(0, -tracker.radius, tracker.radius, 0);
+                context.quadraticCurveTo(0, tracker.radius, -tracker.radius, 0);
+                context.fillStyle = colors.tracker + 'cc';
+                context.fill();
+
+                context.beginPath();
+                context.arc(0, 0, 4, 0, Math.PI * 2);
+                context.fillStyle = '#fff';
+                context.fill();
+
+                context.restore();
+            }
+
+            function drawRelay() {
+                const relayX = gameState.relay.x - RELAY_WIDTH / 2;
+                const relayY = CANVAS_HEIGHT - 25;
+
+                context.fillStyle = colors.relay;
+                context.beginPath();
+                context.roundRect(relayX, relayY, RELAY_WIDTH, RELAY_HEIGHT, 6);
+                context.fill();
+
+                context.fillStyle = colors.relay + '60';
+                context.beginPath();
+                context.arc(gameState.relay.x, CANVAS_HEIGHT - 19, 20, Math.PI, 0);
+                context.fill();
+            }
+
+            function drawParticle(particle) {
+                const alpha = Math.floor(particle.life * 8)
+                    .toString(16)
+                    .padStart(2, '0');
+                const color = particle.isBad ? colors.tracker : colors.particle;
+
+                context.beginPath();
+                context.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                context.fillStyle = color + alpha;
+                context.fill();
+            }
+
+            function draw() {
+                drawBackground();
+                drawCircuitLines();
+
+                gameState.packets.forEach(drawPacket);
+                gameState.trackers.forEach(drawTracker);
+                drawRelay();
+                gameState.particles.forEach(drawParticle);
+
+                updateUI();
+            }
+
+            function updateUI() {
+                elements.scoreDisplay.textContent = gameState.score;
+                elements.hopsDisplay.textContent = gameState.hops;
+                elements.speedDisplay.textContent = gameState.speed.toFixed(1);
+                elements.highscoreDisplay.textContent = gameState.highscore;
+            }
+
+            function gameLoop() {
+                if (!gameState.running) {
+                    return;
+                }
+
+                spawnEntities();
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+
+            function endGame() {
+                gameState.running = false;
+                drawGameOverScreen();
+            }
+
+            function drawGameOverScreen() {
+                context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                context.textAlign = 'center';
+
+                context.fillStyle = '#fff';
+                context.font = 'bold 24px system-ui';
+                context.fillText('Circuit Broken!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
+
+                context.fillStyle = colors.packet;
+                context.font = '16px JetBrains Mono';
+                context.fillText(
+                    `${gameState.score} packets routed`,
+                    CANVAS_WIDTH / 2,
+                    CANVAS_HEIGHT / 2 + 5
+                );
+
+                const isNewHighscore =
+                    gameState.score >= gameState.highscore && gameState.score > 0;
+                if (isNewHighscore) {
+                    context.fillStyle = '#fbbf24';
+                    context.font = '14px JetBrains Mono';
+                    context.fillText('★ New Best! ★', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+                }
+
+                context.fillStyle = '#888';
+                context.font = '12px JetBrains Mono';
+                context.fillText('Click to retry', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+            }
+
+            function startGame() {
+                const previousHighscore = gameState.highscore;
+                gameState = createInitialState();
+                gameState.highscore = previousHighscore;
+                gameState.running = true;
+                gameLoop();
+            }
+
+            function openGame() {
+                elements.overlay.classList.add('active');
+                startGame();
+            }
+
+            function closeGame() {
+                elements.overlay.classList.remove('active');
+                gameState.running = false;
+            }
+
+            function clampRelayPosition(x) {
+                const minX = RELAY_WIDTH / 2;
+                const maxX = CANVAS_WIDTH - RELAY_WIDTH / 2;
+                return Math.max(minX, Math.min(maxX, x));
+            }
+
+            function moveRelayLeft() {
+                gameState.relay.x = clampRelayPosition(gameState.relay.x - 15);
+            }
+
+            function moveRelayRight() {
+                gameState.relay.x = clampRelayPosition(gameState.relay.x + 15);
+            }
+
+            function handleKeyDown(event) {
+                if (!elements.overlay.classList.contains('active')) {
+                    return;
+                }
+
+                if (event.key === 'Escape') {
+                    closeGame();
+                    return;
+                }
+
+                if (event.key === 'ArrowLeft') {
+                    moveRelayLeft();
+                }
+
+                if (event.key === 'ArrowRight') {
+                    moveRelayRight();
+                }
+            }
+
+            function handleCanvasClick() {
+                if (!gameState.running) {
+                    startGame();
+                }
+            }
+
+            function handleMouseMove(event) {
+                if (!isDragging || !gameState.running) {
+                    return;
+                }
+                gameState.relay.x = clampRelayPosition(event.offsetX);
+            }
+
+            function handleTouchMove(event) {
+                if (!isDragging || !gameState.running) {
+                    return;
+                }
+
+                event.preventDefault();
+                const rect = elements.canvas.getBoundingClientRect();
+                const touchX = event.touches[0].clientX - rect.left;
+                gameState.relay.x = clampRelayPosition(touchX);
+            }
+
+            elements.trigger.addEventListener('click', openGame);
+            elements.closeButton.addEventListener('click', closeGame);
+            elements.canvas.addEventListener('click', handleCanvasClick);
+
+            document.addEventListener('keydown', handleKeyDown);
+
+            elements.canvas.addEventListener('mousedown', () => (isDragging = true));
+            elements.canvas.addEventListener('touchstart', () => (isDragging = true));
+            document.addEventListener('mouseup', () => (isDragging = false));
+            document.addEventListener('touchend', () => (isDragging = false));
+
+            elements.canvas.addEventListener('mousemove', handleMouseMove);
+            elements.canvas.addEventListener('touchmove', handleTouchMove);
+
+            elements.highscoreDisplay.textContent = loadHighscore();
+        </script>
+    </body>
+</html>
