@@ -608,7 +608,9 @@ impl PaddingCell {
     /// The payload is filled with cryptographically random bytes.
     pub fn new() -> Self {
         let mut payload = vec![0u8; FIXED_PAYLOAD_LEN];
-        getrandom::fill(&mut payload).expect("Failed to generate random bytes");
+        use rand::RngCore;
+        let mut rng = rand::rng();
+        rng.fill_bytes(&mut payload);
         PaddingCell { payload }
     }
 
@@ -861,7 +863,9 @@ impl CreateFastCell {
     /// * `circ_id` - Circuit ID for the new circuit
     pub fn new(circ_id: u32) -> Self {
         let mut key_material = [0u8; HASH_LEN];
-        getrandom::fill(&mut key_material).expect("Failed to generate random bytes");
+        use rand::RngCore;
+        let mut rng = rand::rng();
+        rng.fill_bytes(&mut key_material);
         CreateFastCell {
             circ_id,
             key_material,
@@ -970,7 +974,9 @@ impl CreatedFastCell {
     /// * `derivative_key` - Hash proving knowledge of shared key
     pub fn new(circ_id: u32, derivative_key: [u8; HASH_LEN]) -> Self {
         let mut key_material = [0u8; HASH_LEN];
-        getrandom::fill(&mut key_material).expect("Failed to generate random bytes");
+        use rand::RngCore;
+        let mut rng = rand::rng();
+        rng.fill_bytes(&mut key_material);
         CreatedFastCell {
             circ_id,
             key_material,
@@ -1318,7 +1324,9 @@ impl VPaddingCell {
     pub fn new(size: usize) -> Self {
         let mut payload = vec![0u8; size];
         if size > 0 {
-            getrandom::fill(&mut payload).expect("Failed to generate random bytes");
+            use rand::RngCore;
+            let mut rng = rand::rng();
+            rng.fill_bytes(&mut payload);
         }
         VPaddingCell { payload }
     }
@@ -1466,7 +1474,9 @@ impl AuthChallengeCell {
     /// * `methods` - Supported authentication methods
     pub fn new(methods: Vec<u16>) -> Self {
         let mut challenge = [0u8; AUTH_CHALLENGE_SIZE];
-        getrandom::fill(&mut challenge).expect("Failed to generate random bytes");
+        use rand::RngCore;
+        let mut rng = rand::rng();
+        rng.fill_bytes(&mut challenge);
         AuthChallengeCell {
             challenge,
             methods,

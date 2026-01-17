@@ -847,7 +847,9 @@ fn read_cookie_file(path: &Path) -> Result<Vec<u8>, Error> {
 /// Generates a cryptographically secure random 32-byte nonce.
 fn generate_nonce() -> [u8; 32] {
     let mut nonce = [0u8; 32];
-    getrandom::fill(&mut nonce).expect("failed to generate random nonce");
+    use rand::RngCore;
+    let mut rng = rand::rng();
+    rng.fill_bytes(&mut nonce);
     nonce
 }
 

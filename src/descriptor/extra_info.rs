@@ -811,20 +811,33 @@ impl ExtraInfoDescriptor {
     }
 
     fn parse_history_line(line: &str) -> Result<BandwidthHistory, Error> {
-        let timestamp_re =
-            regex::Regex::new(r"^(.+?) \((\d+) s\)(.*)$").map_err(|e| Error::Parse {
-                location: "history".to_string(),
-                reason: format!("regex error: {}", e),
-            })?;
-
-        let caps = timestamp_re.captures(line).ok_or_else(|| Error::Parse {
+        // Parse format: "YYYY-MM-DD HH:MM:SS (NNN s) value1,value2,..."
+        // Find the opening parenthesis
+        let paren_start = line.find(" (").ok_or_else(|| Error::Parse {
             location: "history".to_string(),
-            reason: format!("invalid history format: {}", line),
+            reason: format!("invalid history format: missing '(': {}", line),
         })?;
 
-        let timestamp_str = caps.get(1).map(|m| m.as_str()).unwrap_or("");
-        let interval_str = caps.get(2).map(|m| m.as_str()).unwrap_or("0");
-        let values_str = caps.get(3).map(|m| m.as_str().trim()).unwrap_or("");
+        let timestamp_str = &line[..paren_start];
+        let rest = &line[paren_start + 2..]; // Skip " ("
+
+        // Find the closing parenthesis
+        let paren_end = rest.find(')').ok_or_else(|| Error::Parse {
+            location: "history".to_string(),
+            reason: format!("invalid history format: missing ')': {}", line),
+        })?;
+
+        let interval_part = &rest[..paren_end];
+        let values_str = rest[paren_end + 1..].trim();
+
+        // Parse interval (should end with " s")
+        let interval_str = interval_part
+            .trim()
+            .strip_suffix(" s")
+            .ok_or_else(|| Error::Parse {
+                location: "history".to_string(),
+                reason: format!("invalid interval format: {}", interval_part),
+            })?;
 
         let end_time = NaiveDateTime::parse_from_str(timestamp_str.trim(), "%Y-%m-%d %H:%M:%S")
             .map_err(|e| Error::Parse {
@@ -860,24 +873,33 @@ impl ExtraInfoDescriptor {
     }
 
     fn parse_timestamp_and_interval(line: &str) -> Result<(DateTime<Utc>, u32, String), Error> {
-        let timestamp_re =
-            regex::Regex::new(r"^(.+?) \((\d+) s\)(.*)$").map_err(|e| Error::Parse {
-                location: "timestamp".to_string(),
-                reason: format!("regex error: {}", e),
-            })?;
-
-        let caps = timestamp_re.captures(line).ok_or_else(|| Error::Parse {
+        // Parse format: "YYYY-MM-DD HH:MM:SS (NNN s) remainder"
+        // Find the opening parenthesis
+        let paren_start = line.find(" (").ok_or_else(|| Error::Parse {
             location: "timestamp".to_string(),
-            reason: format!("invalid timestamp format: {}", line),
+            reason: format!("invalid timestamp format: missing '(': {}", line),
         })?;
 
-        let timestamp_str = caps.get(1).map(|m| m.as_str()).unwrap_or("");
-        let interval_str = caps.get(2).map(|m| m.as_str()).unwrap_or("0");
-        let remainder = caps
-            .get(3)
-            .map(|m| m.as_str().trim())
-            .unwrap_or("")
-            .to_string();
+        let timestamp_str = &line[..paren_start];
+        let rest = &line[paren_start + 2..]; // Skip " ("
+
+        // Find the closing parenthesis
+        let paren_end = rest.find(')').ok_or_else(|| Error::Parse {
+            location: "timestamp".to_string(),
+            reason: format!("invalid timestamp format: missing ')': {}", line),
+        })?;
+
+        let interval_part = &rest[..paren_end];
+        let remainder = rest[paren_end + 1..].trim().to_string();
+
+        // Parse interval (should end with " s")
+        let interval_str = interval_part
+            .trim()
+            .strip_suffix(" s")
+            .ok_or_else(|| Error::Parse {
+                location: "timestamp".to_string(),
+                reason: format!("invalid interval format: {}", interval_part),
+            })?;
 
         let timestamp = NaiveDateTime::parse_from_str(timestamp_str.trim(), "%Y-%m-%d %H:%M:%S")
             .map_err(|e| Error::Parse {

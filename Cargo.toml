@@ -1,6 +1,6 @@
 [package]
 name = "stem-rs"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 description = "A complete Rust library for Tor control protocol — build privacy-focused applications with type-safe, async-first APIs"
 license = "Apache-2.0"
@@ -14,13 +14,14 @@ categories = ["network-programming", "asynchronous", "cryptography"]
 
 [features]
 default = ["full"]
-full = ["controller", "descriptors", "events", "exit-policy", "client", "interpreter"]
+full = ["controller", "descriptors", "events", "exit-policy", "client", "interpreter", "compression"]
 controller = ["events"]
 descriptors = ["client", "exit-policy"]
 events = []
 exit-policy = []
 client = []
 interpreter = ["controller", "events"]
+compression = ["dep:flate2"]
 integration = []
 extensive = ["integration"]
 
@@ -33,9 +34,8 @@ hmac = "0.12"
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
-getrandom = "0.3"
-regex = "1"
-flate2 = "1.1"
+rand = "0.9"
+flate2 = { version = "1.1", optional = true }
 base64 = "0.22"
 derive_builder = "0.20"
 

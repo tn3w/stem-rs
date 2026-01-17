@@ -155,7 +155,7 @@ Add stem-rs to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stem-rs = "1.1"
+stem-rs = "1.2"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -197,7 +197,7 @@ By default, all features are enabled:
 
 ```toml
 [dependencies]
-stem-rs = "1.1"  # Includes all features
+stem-rs = "1.2"  # Includes all features
 ```
 
 ### Minimal Build
@@ -206,7 +206,7 @@ For a minimal build with just the core functionality:
 
 ```toml
 [dependencies]
-stem-rs = { version = "1.1", default-features = false }
+stem-rs = { version = "1.2", default-features = false }
 ```
 
 This includes: socket communication, authentication, protocol parsing, utilities, and version handling.
@@ -222,25 +222,26 @@ This includes: socket communication, authentication, protocol parsing, utilities
 | `exit-policy` | Exit policy parsing and evaluation | None |
 | `client` | ORPort relay communication | None |
 | `interpreter` | Interactive Tor control interpreter | `controller`, `events` |
+| `compression` | Gzip decompression for descriptors | None |
 
 ### Custom Feature Combinations
 
 **Controller only** (no descriptor parsing):
 ```toml
 [dependencies]
-stem-rs = { version = "1.1", default-features = false, features = ["controller"] }
+stem-rs = { version = "1.2", default-features = false, features = ["controller"] }
 ```
 
 **Descriptors only** (offline analysis):
 ```toml
 [dependencies]
-stem-rs = { version = "1.1", default-features = false, features = ["descriptors"] }
+stem-rs = { version = "1.2", default-features = false, features = ["descriptors"] }
 ```
 
 **Controller + Descriptors** (most common):
 ```toml
 [dependencies]
-stem-rs = { version = "1.1", default-features = false, features = ["controller", "descriptors"] }
+stem-rs = { version = "1.2", default-features = false, features = ["controller", "descriptors"] }
 ```
 
 ### Compile Time Improvements

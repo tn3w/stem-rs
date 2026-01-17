@@ -136,9 +136,11 @@ pub use server::{ServerDescriptor, ServerDescriptorBuilder};
 pub use tordnsel::{parse_exit_list, parse_exit_list_bytes, TorDNSEL};
 
 use crate::Error;
+#[cfg(feature = "compression")]
 use flate2::read::GzDecoder;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::Sha256;
+#[cfg(feature = "compression")]
 use std::io::Read;
 use std::path::Path;
 use thiserror::Error as ThisError;
@@ -1284,16 +1286,25 @@ pub fn decompress(content: &[u8], compression: Compression) -> Result<Vec<u8>, E
     }
 }
 
-fn decompress_gzip(content: &[u8]) -> Result<Vec<u8>, Error> {
-    let mut decoder = GzDecoder::new(content);
-    let mut decompressed = Vec::new();
-    decoder.read_to_end(&mut decompressed).map_err(|e| {
-        Error::Descriptor(DescriptorError::DecompressionFailed(format!(
-            "Failed to decompress gzip: {}",
-            e
+fn decompress_gzip(_content: &[u8]) -> Result<Vec<u8>, Error> {
+    #[cfg(feature = "compression")]
+    {
+        let mut decoder = GzDecoder::new(_content);
+        let mut decompressed = Vec::new();
+        decoder.read_to_end(&mut decompressed).map_err(|e| {
+            Error::Descriptor(DescriptorError::DecompressionFailed(format!(
+                "Failed to decompress gzip: {}",
+                e
+            )))
+        })?;
+        Ok(decompressed)
+    }
+    #[cfg(not(feature = "compression"))]
+    {
+        Err(Error::Descriptor(DescriptorError::UnsupportedCompression(
+            "Gzip decompression not supported (enable 'compression' feature)".into(),
         )))
-    })?;
-    Ok(decompressed)
+    }
 }
 
 /// Automatically detects and decompresses content.

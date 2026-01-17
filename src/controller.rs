@@ -3184,8 +3184,9 @@ impl Controller {
         }
 
         let mut random_bytes = [0u8; 8];
-        getrandom::fill(&mut random_bytes)
-            .map_err(|e| Error::Protocol(format!("Random generation failed: {}", e)))?;
+        use rand::RngCore;
+        let mut rng = rand::rng();
+        rng.fill_bytes(&mut random_bytes);
         let random_value = u64::from_le_bytes(random_bytes) % total_bandwidth;
 
         let mut cumulative = 0u64;
@@ -3538,7 +3539,7 @@ fn parse_accounting_bytes(bytes_str: &str) -> Result<(u64, u64), Error> {
 fn parse_interval_end_to_seconds(interval_end: &str, current_time: f64) -> Option<u64> {
     // interval_end format: "YYYY-MM-DD HH:MM:SS"
     use chrono::NaiveDateTime;
-    
+
     let naive_dt = NaiveDateTime::parse_from_str(interval_end, "%Y-%m-%d %H:%M:%S").ok()?;
     let end_timestamp = naive_dt.and_utc().timestamp() as f64;
 
