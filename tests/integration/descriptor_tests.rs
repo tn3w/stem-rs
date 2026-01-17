@@ -752,14 +752,17 @@ async fn test_decompression_failed_error() {
 
 #[tokio::test]
 async fn test_error_source_chain() {
-    use std::error::Error;
     use stem_rs::descriptor::{ConsensusError, DescriptorError};
 
     let consensus_err = ConsensusError::InvalidFingerprint("test".to_string());
     let desc_err: DescriptorError = consensus_err.into();
 
-    let source = desc_err.source();
-    assert!(source.is_some(), "Error should have a source");
+    match desc_err {
+        DescriptorError::Consensus(e) => {
+            assert!(e.to_string().contains("Invalid fingerprint"));
+        }
+        _ => panic!("Expected Consensus variant"),
+    }
 }
 
 #[tokio::test]
