@@ -39,6 +39,9 @@ flate2 = "1.1"
 base64 = "0.22"
 derive_builder = "0.20"
 
+# Ensure indirect dependencies use latest versions
+generic-array = "0.14.9"
+
 [dev-dependencies]
 proptest = "1"
 
