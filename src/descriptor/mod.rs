@@ -93,6 +93,7 @@
 
 pub mod authority;
 pub mod bandwidth_file;
+pub mod cache;
 pub mod certificate;
 pub mod consensus;
 pub mod extra_info;
@@ -106,20 +107,24 @@ pub mod tordnsel;
 
 pub use authority::{DirectoryAuthority, SharedRandomnessCommitment};
 pub use bandwidth_file::{BandwidthFile, BandwidthMeasurement, RecentStats, RelayFailures};
+pub use cache::{CacheStats, DescriptorCache};
 pub use certificate::{
     Ed25519Certificate, Ed25519Extension, ExtensionFlag, ExtensionType, ED25519_HEADER_LENGTH,
     ED25519_KEY_LENGTH, ED25519_SIGNATURE_LENGTH,
 };
-pub use consensus::{DocumentSignature, NetworkStatusDocument, SharedRandomness};
+pub use consensus::{
+    DocumentSignature, NetworkStatusDocument, NetworkStatusDocumentBuilder, SharedRandomness,
+};
 pub use extra_info::{
-    BandwidthHistory, DirResponse, DirStat, ExtraInfoDescriptor, PortKey, Transport,
+    BandwidthHistory, DirResponse, DirStat, ExtraInfoDescriptor, ExtraInfoDescriptorBuilder,
+    PortKey, Transport,
 };
 pub use hidden::{
     AuthorizedClient, HiddenServiceDescriptorV2, HiddenServiceDescriptorV3, InnerLayer,
     IntroductionPointV2, IntroductionPointV3, LinkSpecifier, OuterLayer,
 };
 pub use key_cert::KeyCertificate;
-pub use micro::Microdescriptor;
+pub use micro::{Microdescriptor, MicrodescriptorBuilder};
 pub use remote::{
     download_bandwidth_file, download_consensus, download_detached_signatures,
     download_extrainfo_descriptors, download_from_dirport, download_key_certificates,
@@ -127,7 +132,7 @@ pub use remote::{
     DownloadResult,
 };
 pub use router_status::{MicrodescriptorHash, RouterStatusEntry, RouterStatusEntryType};
-pub use server::ServerDescriptor;
+pub use server::{ServerDescriptor, ServerDescriptorBuilder};
 pub use tordnsel::{parse_exit_list, parse_exit_list_bytes, TorDNSEL};
 
 use crate::Error;
@@ -136,6 +141,521 @@ use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::Sha256;
 use std::io::Read;
 use std::path::Path;
+use thiserror::Error as ThisError;
+
+/// Errors that can occur when parsing network status consensus documents.
+///
+/// This error type provides specific information about what went wrong during
+/// consensus parsing, making it easier to diagnose and fix issues with malformed
+/// consensus documents.
+///
+/// # Example
+///
+/// ```rust
+/// use stem_rs::descriptor::ConsensusError;
+///
+/// fn handle_consensus_error(err: ConsensusError) {
+///     match err {
+///         ConsensusError::InvalidFingerprint(fp) => {
+///             eprintln!("Invalid relay fingerprint: {}", fp);
+///         }
+///         ConsensusError::TimestampOrderingViolation(msg) => {
+///             eprintln!("Timestamp ordering issue: {}", msg);
+///         }
+///         _ => eprintln!("Consensus parse error: {}", err),
+///     }
+/// }
+/// ```
+#[derive(Debug, ThisError)]
+pub enum ConsensusError {
+    /// IO error occurred while reading consensus data.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Network status version is not supported.
+    #[error("Invalid network status version: expected 3, got {0}")]
+    InvalidNetworkStatusVersion(String),
+
+    /// Vote status field has invalid value.
+    #[error("Invalid vote status: expected 'vote' or 'consensus', got {0}")]
+    InvalidVoteStatus(String),
+
+    /// Timestamp format is invalid or unparseable.
+    #[error("Invalid timestamp format: {0}")]
+    InvalidTimestamp(String),
+
+    /// Voting delay line has wrong number of values.
+    #[error("Invalid voting delay: expected 2 values, got {0}")]
+    InvalidVotingDelay(String),
+
+    /// Relay fingerprint format is invalid.
+    #[error("Invalid fingerprint: {0}")]
+    InvalidFingerprint(String),
+
+    /// IP address format is invalid.
+    #[error("Invalid IP address: {0}")]
+    InvalidIpAddress(#[from] std::net::AddrParseError),
+
+    /// Port number is invalid or out of range.
+    #[error("Invalid port number: {0}")]
+    InvalidPort(#[from] std::num::ParseIntError),
+
+    /// Bandwidth value is invalid or unparseable.
+    #[error("Invalid bandwidth value: {0}")]
+    InvalidBandwidth(String),
+
+    /// Relay flag is not recognized.
+    #[error("Invalid flag: {0}")]
+    InvalidFlag(String),
+
+    /// Protocol version string is malformed.
+    #[error("Invalid protocol version: {0}")]
+    InvalidProtocolVersion(String),
+
+    /// Base64 encoding is invalid.
+    #[error("Invalid base64 encoding: {0}")]
+    InvalidBase64(String),
+
+    /// Cryptographic signature is invalid.
+    #[error("Invalid signature: {0}")]
+    InvalidSignature(String),
+
+    /// Required field is missing from consensus.
+    #[error("Missing required field: {0}")]
+    MissingRequiredField(String),
+
+    /// Timestamps are not in correct order (valid-after < fresh-until < valid-until).
+    #[error("Timestamp ordering violation: {0}")]
+    TimestampOrderingViolation(String),
+
+    /// Line format is invalid at specific location.
+    #[error("Invalid line format at line {line}: {reason}")]
+    InvalidLineFormat {
+        /// Line number where error occurred.
+        line: usize,
+        /// Description of the format error.
+        reason: String,
+    },
+}
+
+/// Errors that can occur when parsing server descriptors.
+///
+/// Server descriptors contain full relay metadata including identity keys,
+/// exit policies, bandwidth information, and platform details.
+///
+/// # Example
+///
+/// ```rust
+/// use stem_rs::descriptor::ServerDescriptorError;
+///
+/// fn handle_server_error(err: ServerDescriptorError) {
+///     match err {
+///         ServerDescriptorError::InvalidNickname(nick) => {
+///             eprintln!("Invalid relay nickname: {}", nick);
+///         }
+///         ServerDescriptorError::MissingRequiredField(field) => {
+///             eprintln!("Missing required field: {}", field);
+///         }
+///         _ => eprintln!("Server descriptor parse error: {}", err),
+///     }
+/// }
+/// ```
+#[derive(Debug, ThisError)]
+pub enum ServerDescriptorError {
+    /// IO error occurred while reading descriptor data.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Router line has wrong number of components.
+    #[error("Invalid router line format: expected 5 parts, got {actual}")]
+    InvalidRouterFormat {
+        /// Actual number of parts found.
+        actual: usize,
+    },
+
+    /// Relay nickname is invalid (must be 1-19 alphanumeric characters).
+    #[error("Invalid nickname: {0}")]
+    InvalidNickname(String),
+
+    /// IP address format is invalid.
+    #[error("Invalid IP address: {0}")]
+    InvalidIpAddress(#[from] std::net::AddrParseError),
+
+    /// Port number is invalid or out of range.
+    #[error("Invalid port number: {0}")]
+    InvalidPort(#[from] std::num::ParseIntError),
+
+    /// Bandwidth line has wrong number of values.
+    #[error("Invalid bandwidth line format: expected 3 parts, got {actual}")]
+    InvalidBandwidthFormat {
+        /// Actual number of parts found.
+        actual: usize,
+    },
+
+    /// Bandwidth value is invalid or unparseable.
+    #[error("Invalid bandwidth value: {0}")]
+    InvalidBandwidth(String),
+
+    /// Published date format is invalid.
+    #[error("Invalid published date format: {0}")]
+    InvalidPublishedDate(String),
+
+    /// Fingerprint format is invalid (must be 40 hex characters).
+    #[error("Invalid fingerprint format: {0}")]
+    InvalidFingerprint(String),
+
+    /// RSA public key is malformed or invalid.
+    #[error("Invalid RSA public key: {0}")]
+    InvalidRsaKey(String),
+
+    /// Ed25519 identity key is invalid.
+    #[error("Invalid Ed25519 identity: {0}")]
+    InvalidEd25519Identity(String),
+
+    /// Exit policy format is invalid.
+    #[error("Invalid exit policy format: {0}")]
+    InvalidExitPolicy(String),
+
+    /// Protocol version string is malformed.
+    #[error("Invalid protocol version: {0}")]
+    InvalidProtocolVersion(String),
+
+    /// Required field is missing from descriptor.
+    #[error("Missing required field: {0}")]
+    MissingRequiredField(String),
+
+    /// Line format is invalid at specific location.
+    #[error("Invalid line format at line {line}: {reason}")]
+    InvalidLineFormat {
+        /// Line number where error occurred.
+        line: usize,
+        /// Description of the format error.
+        reason: String,
+    },
+}
+
+/// Errors that can occur when parsing microdescriptors.
+///
+/// Microdescriptors are compact descriptors used by clients for building
+/// circuits with minimal bandwidth overhead.
+///
+/// # Example
+///
+/// ```rust
+/// use stem_rs::descriptor::MicrodescriptorError;
+///
+/// fn handle_micro_error(err: MicrodescriptorError) {
+///     match err {
+///         MicrodescriptorError::InvalidOnionKey(msg) => {
+///             eprintln!("Invalid onion key: {}", msg);
+///         }
+///         MicrodescriptorError::MissingRequiredField(field) => {
+///             eprintln!("Missing required field: {}", field);
+///         }
+///         _ => eprintln!("Microdescriptor parse error: {}", err),
+///     }
+/// }
+/// ```
+#[derive(Debug, ThisError)]
+pub enum MicrodescriptorError {
+    /// IO error occurred while reading descriptor data.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Onion key format is invalid.
+    #[error("Invalid onion key format: {0}")]
+    InvalidOnionKey(String),
+
+    /// Ntor onion key format is invalid.
+    #[error("Invalid ntor onion key format: {0}")]
+    InvalidNtorOnionKey(String),
+
+    /// Socket address format is invalid.
+    #[error("Invalid socket address: {0}")]
+    InvalidSocketAddress(#[from] std::net::AddrParseError),
+
+    /// Relay family specification is invalid.
+    #[error("Invalid relay family: {0}")]
+    InvalidRelayFamily(String),
+
+    /// Port policy format is invalid.
+    #[error("Invalid port policy: {0}")]
+    InvalidPortPolicy(String),
+
+    /// Base64 encoding is invalid.
+    #[error("Invalid base64 encoding: {0}")]
+    InvalidBase64(String),
+
+    /// Identity key has wrong length for algorithm.
+    #[error("Invalid identity length for {algorithm}: expected {expected}, got {actual}")]
+    InvalidIdentityLength {
+        /// Algorithm name (e.g., "ed25519").
+        algorithm: String,
+        /// Expected length in bytes.
+        expected: usize,
+        /// Actual length found.
+        actual: usize,
+    },
+
+    /// Identity algorithm is not recognized.
+    #[error("Unknown identity algorithm: {0}")]
+    UnknownIdentityAlgorithm(String),
+
+    /// Cryptographic block is incomplete.
+    #[error("Incomplete crypto block for key type: {0}")]
+    IncompleteCryptoBlock(String),
+
+    /// Required field is missing from descriptor.
+    #[error("Missing required field: {0}")]
+    MissingRequiredField(String),
+}
+
+/// Errors that can occur when parsing extra-info descriptors.
+///
+/// Extra-info descriptors contain bandwidth statistics and additional
+/// relay information not included in server descriptors.
+#[derive(Debug, ThisError)]
+pub enum ExtraInfoError {
+    /// IO error occurred while reading descriptor data.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Extra-info line has wrong number of components.
+    #[error("Invalid extra-info line format: expected 3 parts, got {actual}")]
+    InvalidExtraInfoFormat {
+        /// Actual number of parts found.
+        actual: usize,
+    },
+
+    /// Relay nickname is invalid.
+    #[error("Invalid nickname: {0}")]
+    InvalidNickname(String),
+
+    /// Fingerprint format is invalid.
+    #[error("Invalid fingerprint: {0}")]
+    InvalidFingerprint(String),
+
+    /// Published date format is invalid.
+    #[error("Invalid published date format: {0}")]
+    InvalidPublishedDate(String),
+
+    /// Bandwidth history format is invalid.
+    #[error("Invalid bandwidth history format: {0}")]
+    InvalidBandwidthHistory(String),
+
+    /// Timestamp format is invalid.
+    #[error("Invalid timestamp: {0}")]
+    InvalidTimestamp(String),
+
+    /// Required field is missing from descriptor.
+    #[error("Missing required field: {0}")]
+    MissingRequiredField(String),
+}
+
+/// Errors that can occur when parsing hidden service descriptors.
+///
+/// Hidden service descriptors (v2 and v3) contain information needed
+/// to connect to onion services.
+#[derive(Debug, ThisError)]
+pub enum HiddenServiceDescriptorError {
+    /// IO error occurred while reading descriptor data.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Descriptor version is not supported.
+    #[error("Invalid descriptor version: expected 2 or 3, got {0}")]
+    InvalidDescriptorVersion(u32),
+
+    /// Onion address format is invalid.
+    #[error("Invalid onion address: {0}")]
+    InvalidOnionAddress(String),
+
+    /// Introduction point specification is invalid.
+    #[error("Invalid introduction point: {0}")]
+    InvalidIntroductionPoint(String),
+
+    /// Encryption key is malformed.
+    #[error("Invalid encryption key: {0}")]
+    InvalidEncryptionKey(String),
+
+    /// Cryptographic signature is invalid.
+    #[error("Invalid signature: {0}")]
+    InvalidSignature(String),
+
+    /// Base64 encoding is invalid.
+    #[error("Invalid base64 encoding: {0}")]
+    InvalidBase64(String),
+
+    /// Required field is missing from descriptor.
+    #[error("Missing required field: {0}")]
+    MissingRequiredField(String),
+}
+
+/// Errors that can occur when parsing directory key certificates.
+///
+/// Key certificates bind directory authority signing keys to their
+/// long-term identity keys.
+#[derive(Debug, ThisError)]
+pub enum KeyCertificateError {
+    /// IO error occurred while reading certificate data.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Certificate version is not supported.
+    #[error("Invalid certificate version: expected 3, got {0}")]
+    InvalidCertificateVersion(u32),
+
+    /// Fingerprint format is invalid.
+    #[error("Invalid fingerprint: {0}")]
+    InvalidFingerprint(String),
+
+    /// Timestamp format is invalid.
+    #[error("Invalid timestamp: {0}")]
+    InvalidTimestamp(String),
+
+    /// RSA key is malformed.
+    #[error("Invalid RSA key: {0}")]
+    InvalidRsaKey(String),
+
+    /// Cryptographic signature is invalid.
+    #[error("Invalid signature: {0}")]
+    InvalidSignature(String),
+
+    /// Required field is missing from certificate.
+    #[error("Missing required field: {0}")]
+    MissingRequiredField(String),
+}
+
+/// Errors that can occur when parsing bandwidth measurement files.
+///
+/// Bandwidth files contain relay capacity measurements from bandwidth
+/// authorities used to compute consensus weights.
+#[derive(Debug, ThisError)]
+pub enum BandwidthFileError {
+    /// IO error occurred while reading bandwidth file.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Header format is invalid.
+    #[error("Invalid header format: {0}")]
+    InvalidHeaderFormat(String),
+
+    /// Timestamp format is invalid.
+    #[error("Invalid timestamp: {0}")]
+    InvalidTimestamp(String),
+
+    /// Bandwidth value is invalid or unparseable.
+    #[error("Invalid bandwidth value: {0}")]
+    InvalidBandwidth(String),
+
+    /// Fingerprint format is invalid.
+    #[error("Invalid fingerprint: {0}")]
+    InvalidFingerprint(String),
+
+    /// Required header field is missing.
+    #[error("Missing required header field: {0}")]
+    MissingRequiredHeaderField(String),
+}
+
+/// Errors that can occur when parsing TorDNSEL exit lists.
+///
+/// TorDNSEL exit lists contain IP addresses of Tor exit relays.
+#[derive(Debug, ThisError)]
+pub enum TorDNSELError {
+    /// IO error occurred while reading exit list.
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// IP address format is invalid.
+    #[error("Invalid IP address: {0}")]
+    InvalidIpAddress(#[from] std::net::AddrParseError),
+
+    /// Timestamp format is invalid.
+    #[error("Invalid timestamp: {0}")]
+    InvalidTimestamp(String),
+
+    /// Exit address line format is invalid.
+    #[error("Invalid exit address format: {0}")]
+    InvalidExitAddressFormat(String),
+}
+
+/// Unified error type for all descriptor parsing operations.
+///
+/// This enum wraps all descriptor-specific error types, providing a single
+/// error type that can represent failures from any descriptor parser.
+///
+/// # Design
+///
+/// Following the library-rs reference implementation, this uses transparent
+/// error forwarding with `#[error(transparent)]` to preserve the underlying
+/// error's Display implementation and source chain.
+///
+/// # Example
+///
+/// ```rust
+/// use stem_rs::descriptor::DescriptorError;
+///
+/// fn handle_descriptor_error(err: DescriptorError) {
+///     match err {
+///         DescriptorError::Consensus(e) => {
+///             eprintln!("Consensus error: {}", e);
+///         }
+///         DescriptorError::ServerDescriptor(e) => {
+///             eprintln!("Server descriptor error: {}", e);
+///         }
+///         DescriptorError::UnsupportedCompression(format) => {
+///             eprintln!("Unsupported compression: {}", format);
+///         }
+///         _ => eprintln!("Descriptor error: {}", err),
+///     }
+/// }
+/// ```
+#[derive(Debug, ThisError)]
+pub enum DescriptorError {
+    /// Error parsing network status consensus document.
+    #[error(transparent)]
+    Consensus(#[from] ConsensusError),
+
+    /// Error parsing server descriptor.
+    #[error(transparent)]
+    ServerDescriptor(#[from] ServerDescriptorError),
+
+    /// Error parsing microdescriptor.
+    #[error(transparent)]
+    Microdescriptor(#[from] MicrodescriptorError),
+
+    /// Error parsing extra-info descriptor.
+    #[error(transparent)]
+    ExtraInfo(#[from] ExtraInfoError),
+
+    /// Error parsing hidden service descriptor.
+    #[error(transparent)]
+    HiddenService(#[from] HiddenServiceDescriptorError),
+
+    /// Error parsing directory key certificate.
+    #[error(transparent)]
+    KeyCertificate(#[from] KeyCertificateError),
+
+    /// Error parsing bandwidth measurement file.
+    #[error(transparent)]
+    BandwidthFile(#[from] BandwidthFileError),
+
+    /// Error parsing TorDNSEL exit list.
+    #[error(transparent)]
+    TorDNSEL(#[from] TorDNSELError),
+
+    /// Compression format is not supported.
+    #[error("Unsupported compression format: {0}")]
+    UnsupportedCompression(String),
+
+    /// Decompression failed.
+    #[error("Decompression failed: {0}")]
+    DecompressionFailed(String),
+
+    /// Descriptor contains invalid UTF-8.
+    #[error("Invalid UTF-8 in descriptor: {0}")]
+    InvalidUtf8(#[from] std::string::FromUtf8Error),
+}
 
 /// A type annotation from CollecTor descriptor archives.
 ///
@@ -755,26 +1275,24 @@ pub fn decompress(content: &[u8], compression: Compression) -> Result<Vec<u8>, E
     match compression {
         Compression::Plaintext => Ok(content.to_vec()),
         Compression::Gzip => decompress_gzip(content),
-        Compression::Zstd => Err(Error::Parse {
-            location: "decompress".into(),
-            reason: "Zstd decompression not supported (requires zstd crate)".into(),
-        }),
-        Compression::Lzma => Err(Error::Parse {
-            location: "decompress".into(),
-            reason: "LZMA decompression not supported (requires lzma crate)".into(),
-        }),
+        Compression::Zstd => Err(Error::Descriptor(DescriptorError::UnsupportedCompression(
+            "Zstd decompression not supported (requires zstd crate)".into(),
+        ))),
+        Compression::Lzma => Err(Error::Descriptor(DescriptorError::UnsupportedCompression(
+            "LZMA decompression not supported (requires lzma crate)".into(),
+        ))),
     }
 }
 
 fn decompress_gzip(content: &[u8]) -> Result<Vec<u8>, Error> {
     let mut decoder = GzDecoder::new(content);
     let mut decompressed = Vec::new();
-    decoder
-        .read_to_end(&mut decompressed)
-        .map_err(|e| Error::Parse {
-            location: "decompress_gzip".into(),
-            reason: format!("Failed to decompress gzip: {}", e),
-        })?;
+    decoder.read_to_end(&mut decompressed).map_err(|e| {
+        Error::Descriptor(DescriptorError::DecompressionFailed(format!(
+            "Failed to decompress gzip: {}",
+            e
+        )))
+    })?;
     Ok(decompressed)
 }
 

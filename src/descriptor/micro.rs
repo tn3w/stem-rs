@@ -92,6 +92,8 @@ use std::fmt;
 use std::net::IpAddr;
 use std::str::FromStr;
 
+use derive_builder::Builder;
+
 use crate::exit_policy::MicroExitPolicy;
 use crate::Error;
 
@@ -139,7 +141,8 @@ use super::{compute_digest, Descriptor, DigestEncoding, DigestHash};
 /// # Thread Safety
 ///
 /// `Microdescriptor` is `Send` and `Sync` as it contains only owned data.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Builder)]
+#[builder(setter(into, strip_option))]
 pub struct Microdescriptor {
     /// RSA onion key for TAP circuit handshake (PEM format).
     ///
@@ -150,6 +153,7 @@ pub struct Microdescriptor {
     ///
     /// This is the modern key used for the ntor handshake, which provides
     /// better security properties than the TAP handshake.
+    #[builder(default)]
     pub ntor_onion_key: Option<String>,
     /// Additional addresses (IPv4 or IPv6) the relay listens on.
     ///
@@ -169,6 +173,7 @@ pub struct Microdescriptor {
     /// Compact IPv6 exit policy.
     ///
     /// Separate policy for IPv6 traffic, if different from IPv4.
+    #[builder(default)]
     pub exit_policy_v6: Option<MicroExitPolicy>,
     /// Identity key digests by type.
     ///
@@ -192,6 +197,71 @@ pub struct Microdescriptor {
 }
 
 impl Microdescriptor {
+    /// Validates the microdescriptor for correctness and consistency.
+    ///
+    /// Performs comprehensive validation including:
+    /// - Onion key presence (required field)
+    /// - Port validity in or-addresses
+    /// - Family fingerprint format
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` if validation passes, otherwise returns a descriptive error.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::descriptor::{Microdescriptor, Descriptor};
+    ///
+    /// let content = std::fs::read_to_string("microdescriptor").unwrap();
+    /// let microdesc = Microdescriptor::parse(&content).unwrap();
+    ///
+    /// match microdesc.validate() {
+    ///     Ok(()) => println!("Microdescriptor is valid"),
+    ///     Err(e) => eprintln!("Validation failed: {}", e),
+    /// }
+    /// ```
+    pub fn validate(&self) -> Result<(), Error> {
+        use crate::descriptor::MicrodescriptorError;
+
+        if self.onion_key.is_empty() {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::Microdescriptor(
+                    MicrodescriptorError::MissingRequiredField("onion-key".to_string()),
+                ),
+            ));
+        }
+
+        for (addr, port, _) in &self.or_addresses {
+            if *port == 0 {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::Microdescriptor(
+                        MicrodescriptorError::InvalidPortPolicy(format!(
+                            "or-address {}:0 has invalid port",
+                            addr
+                        )),
+                    ),
+                ));
+            }
+        }
+
+        for fp in &self.family {
+            let clean_fp = fp.trim_start_matches('$');
+            if !clean_fp.is_empty()
+                && clean_fp.len() == 40
+                && !clean_fp.chars().all(|c| c.is_ascii_hexdigit())
+            {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::Microdescriptor(
+                        MicrodescriptorError::InvalidRelayFamily(fp.clone()),
+                    ),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     /// Creates a new microdescriptor with the given onion key.
     ///
     /// This creates a descriptor with default values for optional fields.
@@ -968,5 +1038,409 @@ p6 accept 80,443";
             prop_assert_eq!(&desc.family, &parsed.family, "family mismatch");
             prop_assert_eq!(desc.exit_policy.to_string(), parsed.exit_policy.to_string(), "exit_policy mismatch");
         }
+    }
+}
+
+#[cfg(test)]
+mod comprehensive_tests {
+    use super::*;
+
+    #[test]
+    fn test_edge_case_empty_family() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+family
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert_eq!(desc.family.len(), 0);
+    }
+
+    #[test]
+    fn test_edge_case_multiple_or_addresses_ipv4() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+a 10.0.0.1:9001
+a 192.168.1.1:9002
+a 172.16.0.1:9003
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert_eq!(desc.or_addresses.len(), 3);
+        assert_eq!(desc.or_addresses[0].0.to_string(), "10.0.0.1");
+        assert_eq!(desc.or_addresses[0].1, 9001);
+        assert_eq!(desc.or_addresses[1].0.to_string(), "192.168.1.1");
+        assert_eq!(desc.or_addresses[1].1, 9002);
+    }
+
+    #[test]
+    fn test_edge_case_multiple_or_addresses_ipv6() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+a [2001:db8::1]:9001
+a [2001:db8::2]:9002
+a [fe80::1]:9003
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert_eq!(desc.or_addresses.len(), 3);
+        assert_eq!(desc.or_addresses[0].0.to_string(), "2001:db8::1");
+        assert_eq!(desc.or_addresses[0].1, 9001);
+        assert!(desc.or_addresses[0].2);
+        assert_eq!(desc.or_addresses[1].0.to_string(), "2001:db8::2");
+        assert_eq!(desc.or_addresses[1].1, 9002);
+        assert!(desc.or_addresses[1].2);
+    }
+
+    #[test]
+    fn test_edge_case_mixed_ipv4_ipv6_addresses() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+a 10.0.0.1:9001
+a [2001:db8::1]:9002
+a 192.168.1.1:9003
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert_eq!(desc.or_addresses.len(), 3);
+        assert!(!desc.or_addresses[0].2);
+        assert!(desc.or_addresses[1].2);
+        assert!(!desc.or_addresses[2].2);
+    }
+
+    #[test]
+    fn test_edge_case_protocol_ranges() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+pr Cons=1-2 Desc=1-2 Link=1-5 Relay=1-3
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert_eq!(desc.protocols.get("Cons"), Some(&vec![1, 2]));
+        assert_eq!(desc.protocols.get("Link"), Some(&vec![1, 2, 3, 4, 5]));
+        assert_eq!(desc.protocols.get("Relay"), Some(&vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn test_edge_case_protocol_mixed_ranges() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+pr Link=1-3,5,7-9
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        let link_protos = desc.protocols.get("Link").unwrap();
+        assert!(link_protos.contains(&1));
+        assert!(link_protos.contains(&2));
+        assert!(link_protos.contains(&3));
+        assert!(link_protos.contains(&5));
+        assert!(link_protos.contains(&7));
+        assert!(link_protos.contains(&8));
+        assert!(link_protos.contains(&9));
+        assert!(!link_protos.contains(&4));
+        assert!(!link_protos.contains(&6));
+    }
+
+    #[test]
+    fn test_edge_case_multiple_identifiers() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+id ed25519 fPCuy/4J0zrIRdTQfWP0YI5PsxPOkTc0xPPvZZKGmkI
+id rsa1024 r5572HzD+PMPBbXlZwBhsm6YEbxnYgis8vhZ1jmdI2k
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert!(desc.identifiers.contains_key("ed25519"));
+        assert!(desc.identifiers.contains_key("rsa1024"));
+    }
+
+    #[test]
+    fn test_edge_case_exit_policy_accept_all() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+p accept 1-65535
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert!(desc.exit_policy.can_exit_to(80));
+        assert!(desc.exit_policy.can_exit_to(443));
+        assert!(desc.exit_policy.can_exit_to(22));
+    }
+
+    #[test]
+    fn test_edge_case_exit_policy_reject_all() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+p reject 1-65535
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert!(!desc.exit_policy.can_exit_to(80));
+        assert!(!desc.exit_policy.can_exit_to(443));
+        assert!(!desc.exit_policy.can_exit_to(22));
+    }
+
+    #[test]
+    fn test_edge_case_exit_policy_specific_ports() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+p accept 80,443,8080
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert!(desc.exit_policy.can_exit_to(80));
+        assert!(desc.exit_policy.can_exit_to(443));
+        assert!(desc.exit_policy.can_exit_to(8080));
+        assert!(!desc.exit_policy.can_exit_to(22));
+    }
+
+    #[test]
+    fn test_edge_case_exit_policy_v6_accept() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+p6 accept 80,443
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert!(desc.exit_policy_v6.is_some());
+        assert_eq!(
+            desc.exit_policy_v6.as_ref().unwrap().to_string(),
+            "accept 80,443"
+        );
+    }
+
+    #[test]
+    fn test_edge_case_exit_policy_v6_reject() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+p6 reject 1-65535
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert!(desc.exit_policy_v6.is_some());
+        // MicroExitPolicy normalizes "reject 1-65535" to "reject *"
+        assert_eq!(
+            desc.exit_policy_v6.as_ref().unwrap().to_string(),
+            "reject *"
+        );
+    }
+
+    #[test]
+    fn test_edge_case_unrecognized_lines() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+unknown-field some value
+another-unknown another value
+"#;
+        let desc = Microdescriptor::parse(content).unwrap();
+        assert_eq!(desc.unrecognized_lines.len(), 2);
+        assert!(desc
+            .unrecognized_lines
+            .contains(&"unknown-field some value".to_string()));
+        assert!(desc
+            .unrecognized_lines
+            .contains(&"another-unknown another value".to_string()));
+    }
+
+    #[test]
+    fn test_validation_missing_onion_key() {
+        let desc = Microdescriptor {
+            onion_key: String::new(),
+            ntor_onion_key: Some("test".to_string()),
+            or_addresses: Vec::new(),
+            family: Vec::new(),
+            exit_policy: MicroExitPolicy::parse("reject 1-65535").unwrap(),
+            exit_policy_v6: None,
+            identifiers: HashMap::new(),
+            protocols: HashMap::new(),
+            raw_content: Vec::new(),
+            annotations: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = desc.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::Descriptor(crate::descriptor::DescriptorError::Microdescriptor(
+                crate::descriptor::MicrodescriptorError::MissingRequiredField(_),
+            )) => {}
+            _ => panic!("Expected MissingRequiredField error"),
+        }
+    }
+
+    #[test]
+    fn test_validation_zero_port_in_or_addresses() {
+        let desc = Microdescriptor {
+            onion_key: "test".to_string(),
+            ntor_onion_key: Some("test".to_string()),
+            or_addresses: vec![("10.0.0.1".parse().unwrap(), 0, false)],
+            family: Vec::new(),
+            exit_policy: MicroExitPolicy::parse("reject 1-65535").unwrap(),
+            exit_policy_v6: None,
+            identifiers: HashMap::new(),
+            protocols: HashMap::new(),
+            raw_content: Vec::new(),
+            annotations: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = desc.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::Descriptor(crate::descriptor::DescriptorError::Microdescriptor(
+                crate::descriptor::MicrodescriptorError::InvalidPortPolicy(_),
+            )) => {}
+            _ => panic!("Expected InvalidPortPolicy error"),
+        }
+    }
+
+    #[test]
+    fn test_validation_invalid_family_fingerprint() {
+        let desc = Microdescriptor {
+            onion_key: "test".to_string(),
+            ntor_onion_key: Some("test".to_string()),
+            or_addresses: Vec::new(),
+            family: vec!["$ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ".to_string()],
+            exit_policy: MicroExitPolicy::parse("reject 1-65535").unwrap(),
+            exit_policy_v6: None,
+            identifiers: HashMap::new(),
+            protocols: HashMap::new(),
+            raw_content: Vec::new(),
+            annotations: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = desc.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::Descriptor(crate::descriptor::DescriptorError::Microdescriptor(
+                crate::descriptor::MicrodescriptorError::InvalidRelayFamily(_),
+            )) => {}
+            _ => panic!("Expected InvalidRelayFamily error"),
+        }
+    }
+
+    #[test]
+    fn test_validation_valid_microdescriptor() {
+        let desc = Microdescriptor {
+            onion_key: "test".to_string(),
+            ntor_onion_key: Some("test".to_string()),
+            or_addresses: vec![("10.0.0.1".parse().unwrap(), 9001, false)],
+            family: vec!["$A7569A83B5706AB1B1A9CB52EFF7D2D32E4553EB".to_string()],
+            exit_policy: MicroExitPolicy::parse("reject 1-65535").unwrap(),
+            exit_policy_v6: None,
+            identifiers: HashMap::new(),
+            protocols: HashMap::new(),
+            raw_content: Vec::new(),
+            annotations: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = desc.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_builder_basic() {
+        let desc = MicrodescriptorBuilder::default()
+            .onion_key("test_onion_key")
+            .or_addresses(vec![])
+            .family(vec![])
+            .exit_policy(MicroExitPolicy::parse("reject 1-65535").unwrap())
+            .identifiers(HashMap::new())
+            .protocols(HashMap::new())
+            .raw_content(vec![])
+            .annotations(vec![])
+            .unrecognized_lines(vec![])
+            .build()
+            .expect("Failed to build");
+
+        assert_eq!(desc.onion_key, "test_onion_key");
+        assert_eq!(desc.or_addresses.len(), 0);
+    }
+
+    #[test]
+    fn test_builder_with_optional_fields() {
+        let desc = MicrodescriptorBuilder::default()
+            .onion_key("test_onion_key")
+            .ntor_onion_key("test_ntor_key")
+            .or_addresses(vec![])
+            .family(vec![])
+            .exit_policy(MicroExitPolicy::parse("reject 1-65535").unwrap())
+            .exit_policy_v6(MicroExitPolicy::parse("accept 80,443").unwrap())
+            .identifiers(HashMap::new())
+            .protocols(HashMap::new())
+            .raw_content(vec![])
+            .annotations(vec![])
+            .unrecognized_lines(vec![])
+            .build()
+            .expect("Failed to build");
+
+        assert_eq!(desc.ntor_onion_key, Some("test_ntor_key".to_string()));
+        assert!(desc.exit_policy_v6.is_some());
+        assert_eq!(
+            desc.exit_policy_v6.as_ref().unwrap().to_string(),
+            "accept 80,443"
+        );
+    }
+
+    #[test]
+    fn test_round_trip_serialization() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+ntor-onion-key r5572HzD+PMPBbXlZwBhsm6YEbxnYgis8vhZ1jmdI2k=
+family $ABC123 $DEF456
+p accept 80,443
+"#;
+        let desc1 = Microdescriptor::parse(content).unwrap();
+        let serialized = desc1.to_descriptor_string();
+        let desc2 = Microdescriptor::parse(&serialized).unwrap();
+
+        assert_eq!(desc1.onion_key, desc2.onion_key);
+        assert_eq!(desc1.ntor_onion_key, desc2.ntor_onion_key);
+        assert_eq!(desc1.family, desc2.family);
+        assert_eq!(desc1.exit_policy.to_string(), desc2.exit_policy.to_string());
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let desc = Microdescriptor {
+            onion_key: "test".to_string(),
+            ntor_onion_key: Some("test_ntor".to_string()),
+            or_addresses: Vec::new(),
+            family: Vec::new(),
+            exit_policy: MicroExitPolicy::parse("reject 1-65535").unwrap(),
+            exit_policy_v6: None,
+            identifiers: HashMap::new(),
+            protocols: HashMap::new(),
+            raw_content: Vec::new(),
+            annotations: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let display_str = format!("{}", desc);
+        assert!(display_str.contains("onion-key"));
+    }
+
+    #[test]
+    fn test_from_str_implementation() {
+        let content = r#"onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAKM682Uf3wfWRaYs/y1NBNjPTMUEt7cOBhDsqQeOCCZwyE7fCVXu+Kkp
+-----END RSA PUBLIC KEY-----
+"#;
+        let desc: Microdescriptor = content.parse().unwrap();
+        assert!(!desc.onion_key.is_empty());
     }
 }

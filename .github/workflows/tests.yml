@@ -142,5 +142,3 @@ jobs:
           path: |
             tor-bundle/tor/tor.log
             tor-bundle/tor/data/
-
-

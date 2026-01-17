@@ -100,6 +100,7 @@ use std::net::IpAddr;
 use std::str::FromStr;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use derive_builder::Builder;
 
 use crate::exit_policy::ExitPolicy;
 use crate::version::Version;
@@ -108,6 +109,23 @@ use crate::{BridgeDistribution, Error};
 use super::{compute_digest, Descriptor, DigestEncoding, DigestHash};
 
 type RouterLineResult = (String, IpAddr, u16, Option<u16>, Option<u16>);
+
+/// Validates a relay fingerprint.
+///
+/// A valid fingerprint is exactly 40 hexadecimal characters (case-insensitive).
+fn is_valid_fingerprint(fingerprint: &str) -> bool {
+    fingerprint.len() == 40 && fingerprint.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Validates a relay nickname.
+///
+/// A valid nickname is 1-19 characters, all alphanumeric (a-z, A-Z, 0-9).
+fn is_valid_nickname(nickname: &str) -> bool {
+    if nickname.is_empty() || nickname.len() > 19 {
+        return false;
+    }
+    nickname.chars().all(|c| c.is_ascii_alphanumeric())
+}
 
 /// A server descriptor containing metadata about a Tor relay.
 ///
@@ -162,38 +180,49 @@ type RouterLineResult = (String, IpAddr, u16, Option<u16>, Option<u16>);
 /// # Thread Safety
 ///
 /// `ServerDescriptor` is `Send` and `Sync` as it contains only owned data.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Builder)]
+#[builder(setter(into, strip_option))]
 pub struct ServerDescriptor {
     /// The relay's nickname (1-19 alphanumeric characters).
     pub nickname: String,
     /// The relay's fingerprint (40 hex characters), derived from identity key.
+    #[builder(default)]
     pub fingerprint: Option<String>,
     /// The relay's primary IPv4 address.
     pub address: IpAddr,
     /// The relay's onion routing port (always non-zero).
     pub or_port: u16,
     /// The relay's SOCKS port (deprecated, usually None).
+    #[builder(default)]
     pub socks_port: Option<u16>,
     /// The relay's directory port for serving cached descriptors.
+    #[builder(default)]
     pub dir_port: Option<u16>,
     /// Additional addresses (IPv4 or IPv6) the relay listens on.
     /// Each tuple is (address, port, is_ipv6).
     pub or_addresses: Vec<(IpAddr, u16, bool)>,
     /// Raw platform string (e.g., "Tor 0.4.7.10 on Linux").
+    #[builder(default)]
     pub platform: Option<Vec<u8>>,
     /// Parsed Tor version from the platform string.
+    #[builder(default)]
     pub tor_version: Option<Version>,
     /// Operating system from the platform string.
+    #[builder(default)]
     pub operating_system: Option<String>,
     /// When this descriptor was published (UTC).
     pub published: DateTime<Utc>,
     /// Seconds the relay has been running.
+    #[builder(default)]
     pub uptime: Option<u64>,
     /// Contact information for the relay operator.
+    #[builder(default)]
     pub contact: Option<Vec<u8>>,
     /// Supported link protocol versions (legacy).
+    #[builder(default)]
     pub link_protocols: Option<Vec<String>>,
     /// Supported circuit protocol versions (legacy).
+    #[builder(default)]
     pub circuit_protocols: Option<Vec<String>>,
     /// Average bandwidth in bytes per second the relay is willing to sustain.
     pub bandwidth_avg: u64,
@@ -204,6 +233,7 @@ pub struct ServerDescriptor {
     /// The relay's exit policy (rules for what traffic it will exit).
     pub exit_policy: ExitPolicy,
     /// IPv6 exit policy summary (e.g., "accept 80,443" or "reject 1-65535").
+    #[builder(default)]
     pub exit_policy_v6: Option<String>,
     /// How this bridge wants to be distributed (bridges only).
     pub bridge_distribution: BridgeDistribution,
@@ -218,8 +248,10 @@ pub struct ServerDescriptor {
     /// Whether the relay caches extra-info descriptors.
     pub extra_info_cache: bool,
     /// SHA-1 digest of the relay's extra-info descriptor.
+    #[builder(default)]
     pub extra_info_digest: Option<String>,
     /// SHA-256 digest of the relay's extra-info descriptor.
+    #[builder(default)]
     pub extra_info_sha256_digest: Option<String>,
     /// Whether the relay serves as a hidden service directory.
     pub is_hidden_service_dir: bool,
@@ -227,22 +259,31 @@ pub struct ServerDescriptor {
     /// Maps protocol name to list of supported versions.
     pub protocols: HashMap<String, Vec<u32>>,
     /// RSA onion key for circuit creation (PEM format).
+    #[builder(default)]
     pub onion_key: Option<String>,
     /// Cross-certification of onion key by identity key.
+    #[builder(default)]
     pub onion_key_crosscert: Option<String>,
     /// Curve25519 onion key for ntor handshake (base64).
+    #[builder(default)]
     pub ntor_onion_key: Option<String>,
     /// Cross-certification of ntor key.
+    #[builder(default)]
     pub ntor_onion_key_crosscert: Option<String>,
     /// Sign bit for ntor key cross-certification.
+    #[builder(default)]
     pub ntor_onion_key_crosscert_sign: Option<String>,
     /// RSA signing key (PEM format).
+    #[builder(default)]
     pub signing_key: Option<String>,
     /// Ed25519 identity certificate (PEM format).
+    #[builder(default)]
     pub ed25519_certificate: Option<String>,
     /// Ed25519 master key (base64).
+    #[builder(default)]
     pub ed25519_master_key: Option<String>,
     /// Ed25519 signature over the descriptor.
+    #[builder(default)]
     pub ed25519_signature: Option<String>,
     /// RSA signature over the descriptor (PEM format).
     pub signature: String,
@@ -253,6 +294,110 @@ pub struct ServerDescriptor {
 }
 
 impl ServerDescriptor {
+    /// Validates the server descriptor for correctness and consistency.
+    ///
+    /// Performs comprehensive validation including:
+    /// - Nickname format (1-19 alphanumeric characters)
+    /// - Fingerprint format (40 hex characters, if present)
+    /// - IP address validity
+    /// - Port ranges (1-65535)
+    /// - Bandwidth values (non-negative)
+    /// - Timestamp validity
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` if validation passes, otherwise returns a descriptive error.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::descriptor::{ServerDescriptor, Descriptor};
+    ///
+    /// let content = std::fs::read_to_string("server-descriptor").unwrap();
+    /// let descriptor = ServerDescriptor::parse(&content).unwrap();
+    ///
+    /// match descriptor.validate() {
+    ///     Ok(()) => println!("Descriptor is valid"),
+    ///     Err(e) => eprintln!("Validation failed: {}", e),
+    /// }
+    /// ```
+    pub fn validate(&self) -> Result<(), Error> {
+        use crate::descriptor::ServerDescriptorError;
+
+        if !is_valid_nickname(&self.nickname) {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::ServerDescriptor(
+                    ServerDescriptorError::InvalidNickname(self.nickname.clone()),
+                ),
+            ));
+        }
+
+        if let Some(ref fp) = self.fingerprint {
+            if !is_valid_fingerprint(fp) {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::ServerDescriptor(
+                        ServerDescriptorError::InvalidFingerprint(fp.clone()),
+                    ),
+                ));
+            }
+        }
+
+        if self.or_port == 0 {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::ServerDescriptor(
+                    ServerDescriptorError::MissingRequiredField(
+                        "or_port must be non-zero".to_string(),
+                    ),
+                ),
+            ));
+        }
+
+        if self.bandwidth_burst < self.bandwidth_avg {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::ServerDescriptor(
+                    ServerDescriptorError::InvalidBandwidth(format!(
+                        "burst bandwidth ({}) must be >= average bandwidth ({})",
+                        self.bandwidth_burst, self.bandwidth_avg
+                    )),
+                ),
+            ));
+        }
+
+        if self.signature.is_empty() {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::ServerDescriptor(
+                    ServerDescriptorError::MissingRequiredField("signature".to_string()),
+                ),
+            ));
+        }
+
+        for (addr, port, _) in &self.or_addresses {
+            if *port == 0 {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::ServerDescriptor(
+                        ServerDescriptorError::MissingRequiredField(format!(
+                            "or-address {} has invalid port 0",
+                            addr
+                        )),
+                    ),
+                ));
+            }
+        }
+
+        for fp in &self.family {
+            let clean_fp = fp.trim_start_matches('$');
+            if !clean_fp.is_empty() && !is_valid_fingerprint(clean_fp) {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::ServerDescriptor(
+                        ServerDescriptorError::InvalidFingerprint(fp.clone()),
+                    ),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     /// Creates a new server descriptor with minimal required fields.
     ///
     /// This creates a descriptor with default values for optional fields.
@@ -560,24 +705,6 @@ impl ServerDescriptor {
         let end = content.find(end_marker)?;
         Some(&content[start..end + end_marker.len()])
     }
-}
-
-/// Validates a relay nickname.
-///
-/// A valid nickname is 1-19 characters, all alphanumeric (a-z, A-Z, 0-9).
-///
-/// # Arguments
-///
-/// * `nickname` - The nickname to validate
-///
-/// # Returns
-///
-/// `true` if the nickname is valid, `false` otherwise.
-fn is_valid_nickname(nickname: &str) -> bool {
-    if nickname.is_empty() || nickname.len() > 19 {
-        return false;
-    }
-    nickname.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
 impl Descriptor for ServerDescriptor {
@@ -1497,5 +1624,480 @@ mod proptests {
             let desc = result.unwrap();
             prop_assert_eq!(desc.fingerprint, Some(fp));
         }
+    }
+
+    #[test]
+    fn test_edge_case_empty_family() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+family
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert!(desc.family.is_empty());
+    }
+
+    #[test]
+    fn test_edge_case_zero_bandwidth() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 0 0 0
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.bandwidth_avg, 0);
+        assert_eq!(desc.bandwidth_burst, 0);
+        assert_eq!(desc.bandwidth_observed, 0);
+    }
+
+    #[test]
+    fn test_edge_case_large_bandwidth() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 9223372036854775807 9223372036854775807 9223372036854775807
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.bandwidth_avg, i64::MAX as u64);
+        assert_eq!(desc.bandwidth_burst, i64::MAX as u64);
+        assert_eq!(desc.bandwidth_observed, i64::MAX as u64);
+    }
+
+    #[test]
+    fn test_edge_case_zero_uptime() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+uptime 0
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.uptime, Some(0));
+    }
+
+    #[test]
+    fn test_edge_case_large_uptime() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+uptime 4294967295
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.uptime, Some(4294967295));
+    }
+
+    #[test]
+    fn test_edge_case_empty_contact() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+contact
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.contact, Some(Vec::new()));
+    }
+
+    #[test]
+    fn test_edge_case_multiple_or_addresses() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+or-address 10.0.0.1:9002
+or-address [2001:db8::1]:9003
+or-address 172.16.0.1:9004
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.or_addresses.len(), 3);
+        assert_eq!(desc.or_addresses[0].0.to_string(), "10.0.0.1");
+        assert_eq!(desc.or_addresses[0].1, 9002);
+        assert_eq!(desc.or_addresses[1].0.to_string(), "2001:db8::1");
+        assert_eq!(desc.or_addresses[1].1, 9003);
+        assert_eq!(desc.or_addresses[2].0.to_string(), "172.16.0.1");
+        assert_eq!(desc.or_addresses[2].1, 9004);
+    }
+
+    #[test]
+    fn test_edge_case_all_bridge_distributions() {
+        for (dist_str, expected) in [
+            ("https", BridgeDistribution::Https),
+            ("email", BridgeDistribution::Email),
+            ("moat", BridgeDistribution::Moat),
+            ("hyphae", BridgeDistribution::Hyphae),
+            ("any", BridgeDistribution::Any),
+            ("unknown", BridgeDistribution::Any),
+        ] {
+            let content = format!(
+                r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+bridge-distribution-request {}
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#,
+                dist_str
+            );
+            let desc = ServerDescriptor::parse(&content).unwrap();
+            assert_eq!(desc.bridge_distribution, expected);
+        }
+    }
+
+    #[test]
+    fn test_edge_case_proto_with_ranges() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+proto Link=1-5 Circuit=1-2 Relay=1-3
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.protocols.get("Link"), Some(&vec![1, 2, 3, 4, 5]));
+        assert_eq!(desc.protocols.get("Circuit"), Some(&vec![1, 2]));
+        assert_eq!(desc.protocols.get("Relay"), Some(&vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn test_edge_case_proto_with_mixed_ranges() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+proto Link=1-2,4,6-8
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.protocols.get("Link"), Some(&vec![1, 2, 4, 6, 7, 8]));
+    }
+
+    #[test]
+    fn test_edge_case_unrecognized_lines() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+unknown-keyword some value
+another-unknown-line with multiple words
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        assert_eq!(desc.unrecognized_lines.len(), 2);
+        assert!(desc
+            .unrecognized_lines
+            .contains(&"unknown-keyword some value".to_string()));
+        assert!(desc
+            .unrecognized_lines
+            .contains(&"another-unknown-line with multiple words".to_string()));
+    }
+
+    #[test]
+    fn test_roundtrip_with_all_fields() {
+        let content = r#"router TestRelay 192.168.1.1 9001 9050 9030
+platform Tor 0.4.7.10 on Linux x86_64
+protocols Link 1 2 Circuit 1
+published 2023-01-01 12:00:00
+fingerprint AAAA BBBB CCCC DDDD EEEE FFFF 0000 1111 2222 3333
+uptime 86400
+bandwidth 1000000 2000000 500000
+extra-info-digest ABC123 DEF456
+family $1111111111111111111111111111111111111111 $2222222222222222222222222222222222222222
+hidden-service-dir
+contact admin@example.com
+accept *:80
+accept *:443
+reject *:*
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc = ServerDescriptor::parse(content).unwrap();
+        let serialized = desc.to_descriptor_string();
+        let reparsed = ServerDescriptor::parse(&serialized).unwrap();
+
+        assert_eq!(desc.nickname, reparsed.nickname);
+        assert_eq!(desc.address, reparsed.address);
+        assert_eq!(desc.or_port, reparsed.or_port);
+        assert_eq!(desc.socks_port, reparsed.socks_port);
+        assert_eq!(desc.dir_port, reparsed.dir_port);
+        assert_eq!(desc.published, reparsed.published);
+        assert_eq!(desc.fingerprint, reparsed.fingerprint);
+        assert_eq!(desc.uptime, reparsed.uptime);
+        assert_eq!(desc.bandwidth_avg, reparsed.bandwidth_avg);
+        assert_eq!(desc.bandwidth_burst, reparsed.bandwidth_burst);
+        assert_eq!(desc.bandwidth_observed, reparsed.bandwidth_observed);
+        assert_eq!(desc.family, reparsed.family);
+        assert_eq!(desc.is_hidden_service_dir, reparsed.is_hidden_service_dir);
+    }
+
+    #[test]
+    fn test_validation_invalid_nickname_empty() {
+        let desc = ServerDescriptor::new(
+            String::new(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_invalid_nickname_too_long() {
+        let desc = ServerDescriptor::new(
+            "ThisNicknameIsWayTooLongToBeValid".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_invalid_nickname_special_chars() {
+        let desc = ServerDescriptor::new(
+            "Invalid$Name".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_invalid_fingerprint() {
+        let mut desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        desc.fingerprint = Some("INVALID".to_string());
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_zero_or_port() {
+        let desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            0,
+            Utc::now(),
+            "test".to_string(),
+        );
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_burst_less_than_avg() {
+        let mut desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        desc.bandwidth_avg = 2000;
+        desc.bandwidth_burst = 1000;
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_empty_signature() {
+        let desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            String::new(),
+        );
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_zero_port_in_or_addresses() {
+        let mut desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        desc.or_addresses
+            .push(("10.0.0.1".parse().unwrap(), 0, false));
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_invalid_family_fingerprint() {
+        let mut desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        desc.family.insert("$INVALID".to_string());
+        let result = desc.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation_valid_descriptor() {
+        let mut desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        desc.fingerprint = Some("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string());
+        desc.bandwidth_avg = 1000;
+        desc.bandwidth_burst = 2000;
+        desc.bandwidth_observed = 500;
+        desc.family
+            .insert("$1111111111111111111111111111111111111111".to_string());
+        let result = desc.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_builder_pattern() {
+        let desc = ServerDescriptorBuilder::default()
+            .nickname("TestRelay")
+            .address("192.168.1.1".parse::<IpAddr>().unwrap())
+            .or_port(9001_u16)
+            .or_addresses(vec![])
+            .published(Utc::now())
+            .bandwidth_avg(1000_u64)
+            .bandwidth_burst(2000_u64)
+            .bandwidth_observed(500_u64)
+            .exit_policy(ExitPolicy::new(Vec::new()))
+            .bridge_distribution(BridgeDistribution::Any)
+            .family(HashSet::new())
+            .hibernating(false)
+            .allow_single_hop_exits(false)
+            .allow_tunneled_dir_requests(false)
+            .extra_info_cache(false)
+            .is_hidden_service_dir(false)
+            .protocols(HashMap::new())
+            .signature("test")
+            .raw_content(vec![])
+            .unrecognized_lines(vec![])
+            .build()
+            .expect("Failed to build");
+
+        assert_eq!(desc.nickname, "TestRelay");
+        assert_eq!(desc.or_port, 9001);
+        assert_eq!(desc.bandwidth_avg, 1000);
+    }
+
+    #[test]
+    fn test_builder_with_optional_fields() {
+        let desc = ServerDescriptorBuilder::default()
+            .nickname("TestRelay")
+            .address("192.168.1.1".parse::<IpAddr>().unwrap())
+            .or_port(9001_u16)
+            .or_addresses(vec![])
+            .published(Utc::now())
+            .bandwidth_avg(1000_u64)
+            .bandwidth_burst(2000_u64)
+            .bandwidth_observed(500_u64)
+            .exit_policy(ExitPolicy::new(Vec::new()))
+            .bridge_distribution(BridgeDistribution::Any)
+            .family(HashSet::new())
+            .hibernating(false)
+            .allow_single_hop_exits(false)
+            .allow_tunneled_dir_requests(false)
+            .extra_info_cache(false)
+            .is_hidden_service_dir(false)
+            .protocols(HashMap::new())
+            .signature("test")
+            .raw_content(vec![])
+            .unrecognized_lines(vec![])
+            .fingerprint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            .dir_port(9030_u16)
+            .uptime(86400_u64)
+            .build()
+            .expect("Failed to build");
+
+        assert_eq!(
+            desc.fingerprint,
+            Some("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string())
+        );
+        assert_eq!(desc.dir_port, Some(9030));
+        assert_eq!(desc.uptime, Some(86400));
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let desc = ServerDescriptor::new(
+            "TestRelay".to_string(),
+            "192.168.1.1".parse().unwrap(),
+            9001,
+            Utc::now(),
+            "test".to_string(),
+        );
+        let display_str = format!("{}", desc);
+        assert!(display_str.contains("router TestRelay 192.168.1.1 9001"));
+        assert!(display_str.contains("router-signature"));
+    }
+
+    #[test]
+    fn test_from_str_implementation() {
+        let content = r#"router TestRelay 192.168.1.1 9001 0 0
+published 2023-01-01 00:00:00
+bandwidth 1000 2000 500
+router-signature
+-----BEGIN SIGNATURE-----
+test
+-----END SIGNATURE-----
+"#;
+        let desc: ServerDescriptor = content.parse().unwrap();
+        assert_eq!(desc.nickname, "TestRelay");
+        assert_eq!(desc.or_port, 9001);
     }
 }

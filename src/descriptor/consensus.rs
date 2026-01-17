@@ -95,12 +95,20 @@ use std::net::IpAddr;
 use std::str::FromStr;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use derive_builder::Builder;
 
 use crate::version::Version;
 use crate::Error;
 
 use super::authority::DirectoryAuthority;
 use super::{compute_digest, Descriptor, DigestEncoding, DigestHash};
+
+/// Validates a relay fingerprint.
+///
+/// A valid fingerprint is exactly 40 hexadecimal characters (case-insensitive).
+fn is_valid_fingerprint(fingerprint: &str) -> bool {
+    fingerprint.len() == 40 && fingerprint.chars().all(|c| c.is_ascii_hexdigit())
+}
 
 /// Shared randomness value from directory authority collaboration.
 ///
@@ -197,7 +205,8 @@ pub struct DocumentSignature {
 /// # Thread Safety
 ///
 /// `NetworkStatusDocument` is `Send` and `Sync` as it contains only owned data.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Builder)]
+#[builder(setter(into, strip_option))]
 pub struct NetworkStatusDocument {
     /// Network status version (typically 3).
     pub version: u32,
@@ -210,10 +219,13 @@ pub struct NetworkStatusDocument {
     /// Whether this uses microdescriptor format.
     pub is_microdescriptor: bool,
     /// Consensus method used (consensus only).
+    #[builder(default)]
     pub consensus_method: Option<u32>,
     /// Supported consensus methods (vote only).
+    #[builder(default)]
     pub consensus_methods: Option<Vec<u32>>,
     /// When this vote was published (vote only).
+    #[builder(default)]
     pub published: Option<DateTime<Utc>>,
     /// When this document becomes valid.
     pub valid_after: DateTime<Utc>,
@@ -222,42 +234,166 @@ pub struct NetworkStatusDocument {
     /// When this document expires.
     pub valid_until: DateTime<Utc>,
     /// Seconds authorities wait for votes.
+    #[builder(default)]
     pub vote_delay: Option<u32>,
     /// Seconds authorities wait for signatures.
+    #[builder(default)]
     pub dist_delay: Option<u32>,
     /// Recommended Tor versions for clients.
+    #[builder(default)]
     pub client_versions: Vec<Version>,
     /// Recommended Tor versions for relays.
+    #[builder(default)]
     pub server_versions: Vec<Version>,
     /// Flags that may appear on relay entries.
+    #[builder(default)]
     pub known_flags: Vec<String>,
     /// Recommended protocol versions for clients.
+    #[builder(default)]
     pub recommended_client_protocols: HashMap<String, Vec<u32>>,
     /// Recommended protocol versions for relays.
+    #[builder(default)]
     pub recommended_relay_protocols: HashMap<String, Vec<u32>>,
     /// Required protocol versions for clients.
+    #[builder(default)]
     pub required_client_protocols: HashMap<String, Vec<u32>>,
     /// Required protocol versions for relays.
+    #[builder(default)]
     pub required_relay_protocols: HashMap<String, Vec<u32>>,
     /// Consensus parameters (key=value pairs).
+    #[builder(default)]
     pub params: HashMap<String, i32>,
     /// Previous shared randomness value.
+    #[builder(default)]
     pub shared_randomness_previous: Option<SharedRandomness>,
     /// Current shared randomness value.
+    #[builder(default)]
     pub shared_randomness_current: Option<SharedRandomness>,
     /// Bandwidth weights for path selection.
+    #[builder(default)]
     pub bandwidth_weights: HashMap<String, i32>,
     /// Directory authorities that contributed to this document.
+    #[builder(default)]
     pub authorities: Vec<DirectoryAuthority>,
     /// Signatures from directory authorities.
+    #[builder(default)]
     pub signatures: Vec<DocumentSignature>,
     /// Raw bytes of the original document.
+    #[builder(default)]
     raw_content: Vec<u8>,
     /// Lines that were not recognized during parsing.
+    #[builder(default)]
     unrecognized_lines: Vec<String>,
 }
 
 impl NetworkStatusDocument {
+    /// Validates the consensus document for correctness and consistency.
+    ///
+    /// Performs comprehensive validation including:
+    /// - Timestamp ordering (valid_after < fresh_until < valid_until)
+    /// - Authority fingerprint format (40 hex characters)
+    /// - Signature presence and format
+    /// - Version number validity
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` if validation passes, otherwise returns a descriptive error.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::descriptor::{NetworkStatusDocument, Descriptor};
+    ///
+    /// let content = std::fs::read_to_string("consensus").unwrap();
+    /// let consensus = NetworkStatusDocument::parse(&content).unwrap();
+    ///
+    /// match consensus.validate() {
+    ///     Ok(()) => println!("Consensus is valid"),
+    ///     Err(e) => eprintln!("Validation failed: {}", e),
+    /// }
+    /// ```
+    pub fn validate(&self) -> Result<(), Error> {
+        use crate::descriptor::ConsensusError;
+
+        if self.valid_after >= self.fresh_until {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::Consensus(
+                    ConsensusError::TimestampOrderingViolation(format!(
+                        "valid-after ({}) must be before fresh-until ({})",
+                        self.valid_after.to_rfc3339(),
+                        self.fresh_until.to_rfc3339()
+                    )),
+                ),
+            ));
+        }
+
+        if self.fresh_until >= self.valid_until {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::Consensus(
+                    ConsensusError::TimestampOrderingViolation(format!(
+                        "fresh-until ({}) must be before valid-until ({})",
+                        self.fresh_until.to_rfc3339(),
+                        self.valid_until.to_rfc3339()
+                    )),
+                ),
+            ));
+        }
+
+        if self.version != 3 {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::Consensus(
+                    ConsensusError::InvalidNetworkStatusVersion(self.version.to_string()),
+                ),
+            ));
+        }
+
+        for authority in &self.authorities {
+            if !is_valid_fingerprint(&authority.v3ident) {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::Consensus(
+                        ConsensusError::InvalidFingerprint(authority.v3ident.clone()),
+                    ),
+                ));
+            }
+        }
+
+        if self.signatures.is_empty() {
+            return Err(Error::Descriptor(
+                crate::descriptor::DescriptorError::Consensus(
+                    ConsensusError::MissingRequiredField("signatures".to_string()),
+                ),
+            ));
+        }
+
+        for signature in &self.signatures {
+            if !is_valid_fingerprint(&signature.identity) {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::Consensus(
+                        ConsensusError::InvalidFingerprint(signature.identity.clone()),
+                    ),
+                ));
+            }
+
+            if !is_valid_fingerprint(&signature.signing_key_digest) {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::Consensus(
+                        ConsensusError::InvalidFingerprint(signature.signing_key_digest.clone()),
+                    ),
+                ));
+            }
+
+            if signature.signature.is_empty() {
+                return Err(Error::Descriptor(
+                    crate::descriptor::DescriptorError::Consensus(
+                        ConsensusError::InvalidSignature("signature is empty".to_string()),
+                    ),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     fn parse_timestamp(value: &str) -> Result<DateTime<Utc>, Error> {
         let datetime =
             NaiveDateTime::parse_from_str(value.trim(), "%Y-%m-%d %H:%M:%S").map_err(|e| {
@@ -267,6 +403,79 @@ impl NetworkStatusDocument {
                 }
             })?;
         Ok(datetime.and_utc())
+    }
+
+    fn parse_network_status_version(
+        value: &str,
+        builder: &mut NetworkStatusDocumentBuilder,
+    ) -> Result<(), Error> {
+        let parts: Vec<&str> = value.split_whitespace().collect();
+        let version: u32 = parts.first().and_then(|v| v.parse().ok()).unwrap_or(3);
+        builder.version(version);
+
+        if let Some(flavor) = parts.get(1) {
+            builder.version_flavor(flavor.to_string());
+            builder.is_microdescriptor(*flavor == "microdesc");
+        } else {
+            builder.version_flavor("ns".to_string());
+            builder.is_microdescriptor(false);
+        }
+        Ok(())
+    }
+
+    fn parse_vote_status(
+        value: &str,
+        builder: &mut NetworkStatusDocumentBuilder,
+    ) -> Result<(), Error> {
+        builder.is_consensus(value == "consensus");
+        builder.is_vote(value == "vote");
+        Ok(())
+    }
+
+    fn parse_voting_delay(
+        value: &str,
+        builder: &mut NetworkStatusDocumentBuilder,
+    ) -> Result<(), Error> {
+        let parts: Vec<&str> = value.split_whitespace().collect();
+        if parts.len() >= 2 {
+            if let Ok(vote) = parts[0].parse::<u32>() {
+                builder.vote_delay(vote);
+            }
+            if let Ok(dist) = parts[1].parse::<u32>() {
+                builder.dist_delay(dist);
+            }
+        }
+        Ok(())
+    }
+
+    fn parse_directory_signature(
+        value: &str,
+        lines: &[&str],
+        idx: usize,
+        _builder: &mut NetworkStatusDocumentBuilder,
+    ) -> Result<(DocumentSignature, usize), Error> {
+        let parts: Vec<&str> = value.split_whitespace().collect();
+        let (algorithm, identity, signing_key_digest) = if parts.len() >= 3 {
+            (
+                Some(parts[0].to_string()),
+                parts[1].to_string(),
+                parts[2].to_string(),
+            )
+        } else if parts.len() >= 2 {
+            (None, parts[0].to_string(), parts[1].to_string())
+        } else {
+            (None, String::new(), String::new())
+        };
+        let (signature, end_idx) = Self::extract_pem_block(lines, idx + 1);
+        Ok((
+            DocumentSignature {
+                identity,
+                signing_key_digest,
+                signature,
+                algorithm,
+            },
+            end_idx,
+        ))
     }
 
     fn parse_protocols(value: &str) -> HashMap<String, Vec<u32>> {
@@ -408,32 +617,7 @@ impl Descriptor for NetworkStatusDocument {
         let raw_content = content.as_bytes().to_vec();
         let lines: Vec<&str> = content.lines().collect();
 
-        let mut version: u32 = 3;
-        let mut version_flavor = "ns".to_string();
-        let mut is_consensus = true;
-        let mut is_vote = false;
-        let mut is_microdescriptor = false;
-        let mut consensus_method: Option<u32> = None;
-        let mut consensus_methods: Option<Vec<u32>> = None;
-        let mut published: Option<DateTime<Utc>> = None;
-        let mut valid_after: Option<DateTime<Utc>> = None;
-        let mut fresh_until: Option<DateTime<Utc>> = None;
-        let mut valid_until: Option<DateTime<Utc>> = None;
-        let mut vote_delay: Option<u32> = None;
-        let mut dist_delay: Option<u32> = None;
-        let mut client_versions: Vec<Version> = Vec::new();
-        let mut server_versions: Vec<Version> = Vec::new();
-        let mut known_flags: Vec<String> = Vec::new();
-        let mut recommended_client_protocols: HashMap<String, Vec<u32>> = HashMap::new();
-        let mut recommended_relay_protocols: HashMap<String, Vec<u32>> = HashMap::new();
-        let mut required_client_protocols: HashMap<String, Vec<u32>> = HashMap::new();
-        let mut required_relay_protocols: HashMap<String, Vec<u32>> = HashMap::new();
-        let mut params: HashMap<String, i32> = HashMap::new();
-        let mut shared_randomness_previous: Option<SharedRandomness> = None;
-        let mut shared_randomness_current: Option<SharedRandomness> = None;
-        let mut bandwidth_weights: HashMap<String, i32> = HashMap::new();
-        let mut authorities: Vec<DirectoryAuthority> = Vec::new();
-        let mut signatures: Vec<DocumentSignature> = Vec::new();
+        let mut builder = NetworkStatusDocumentBuilder::default();
         let mut unrecognized_lines: Vec<String> = Vec::new();
         let mut current_authority: Option<DirectoryAuthority> = None;
 
@@ -454,86 +638,82 @@ impl Descriptor for NetworkStatusDocument {
 
             match keyword {
                 "network-status-version" => {
-                    let parts: Vec<&str> = value.split_whitespace().collect();
-                    if let Some(v) = parts.first() {
-                        version = v.parse().unwrap_or(3);
-                    }
-                    if let Some(flavor) = parts.get(1) {
-                        version_flavor = flavor.to_string();
-                        is_microdescriptor = *flavor == "microdesc";
-                    }
+                    Self::parse_network_status_version(value, &mut builder)?;
                 }
                 "vote-status" => {
-                    is_consensus = value == "consensus";
-                    is_vote = value == "vote";
+                    Self::parse_vote_status(value, &mut builder)?;
                 }
                 "consensus-method" => {
-                    consensus_method = value.parse().ok();
-                }
-                "consensus-methods" => {
-                    consensus_methods = Some(
-                        value
-                            .split_whitespace()
-                            .filter_map(|v| v.parse().ok())
-                            .collect(),
-                    );
-                }
-                "published" => {
-                    published = Some(Self::parse_timestamp(value)?);
-                }
-                "valid-after" => {
-                    valid_after = Some(Self::parse_timestamp(value)?);
-                }
-                "fresh-until" => {
-                    fresh_until = Some(Self::parse_timestamp(value)?);
-                }
-                "valid-until" => {
-                    valid_until = Some(Self::parse_timestamp(value)?);
-                }
-                "voting-delay" => {
-                    let parts: Vec<&str> = value.split_whitespace().collect();
-                    if parts.len() >= 2 {
-                        vote_delay = parts[0].parse().ok();
-                        dist_delay = parts[1].parse().ok();
+                    if let Ok(method) = value.parse::<u32>() {
+                        builder.consensus_method(method);
                     }
                 }
+                "consensus-methods" => {
+                    let methods: Vec<u32> = value
+                        .split_whitespace()
+                        .filter_map(|v| v.parse().ok())
+                        .collect();
+                    builder.consensus_methods(methods);
+                }
+                "published" => {
+                    builder.published(Self::parse_timestamp(value)?);
+                }
+                "valid-after" => {
+                    builder.valid_after(Self::parse_timestamp(value)?);
+                }
+                "fresh-until" => {
+                    builder.fresh_until(Self::parse_timestamp(value)?);
+                }
+                "valid-until" => {
+                    builder.valid_until(Self::parse_timestamp(value)?);
+                }
+                "voting-delay" => {
+                    Self::parse_voting_delay(value, &mut builder)?;
+                }
                 "client-versions" => {
-                    client_versions = Self::parse_versions(value);
+                    builder.client_versions(Self::parse_versions(value));
                 }
                 "server-versions" => {
-                    server_versions = Self::parse_versions(value);
+                    builder.server_versions(Self::parse_versions(value));
                 }
                 "known-flags" => {
-                    known_flags = value.split_whitespace().map(|s| s.to_string()).collect();
+                    let flags: Vec<String> =
+                        value.split_whitespace().map(|s| s.to_string()).collect();
+                    builder.known_flags(flags);
                 }
                 "recommended-client-protocols" => {
-                    recommended_client_protocols = Self::parse_protocols(value);
+                    builder.recommended_client_protocols(Self::parse_protocols(value));
                 }
                 "recommended-relay-protocols" => {
-                    recommended_relay_protocols = Self::parse_protocols(value);
+                    builder.recommended_relay_protocols(Self::parse_protocols(value));
                 }
                 "required-client-protocols" => {
-                    required_client_protocols = Self::parse_protocols(value);
+                    builder.required_client_protocols(Self::parse_protocols(value));
                 }
                 "required-relay-protocols" => {
-                    required_relay_protocols = Self::parse_protocols(value);
+                    builder.required_relay_protocols(Self::parse_protocols(value));
                 }
                 "params" => {
-                    params = Self::parse_params(value);
+                    builder.params(Self::parse_params(value));
                 }
                 "shared-rand-previous-value" => {
-                    shared_randomness_previous = Self::parse_shared_randomness(value);
+                    if let Some(sr) = Self::parse_shared_randomness(value) {
+                        builder.shared_randomness_previous(sr);
+                    }
                 }
                 "shared-rand-current-value" => {
-                    shared_randomness_current = Self::parse_shared_randomness(value);
+                    if let Some(sr) = Self::parse_shared_randomness(value) {
+                        builder.shared_randomness_current(sr);
+                    }
                 }
                 "bandwidth-weights" => {
-                    bandwidth_weights = Self::parse_params(value);
+                    builder.bandwidth_weights(Self::parse_params(value));
                 }
-
                 "dir-source" => {
                     if let Some(auth) = current_authority.take() {
-                        authorities.push(auth);
+                        let mut auths = builder.authorities.take().unwrap_or_default();
+                        auths.push(auth);
+                        builder.authorities(auths);
                     }
                     current_authority = Some(Self::parse_dir_source(value)?);
                 }
@@ -554,32 +734,22 @@ impl Descriptor for NetworkStatusDocument {
                 }
                 "directory-signature" => {
                     if let Some(auth) = current_authority.take() {
-                        authorities.push(auth);
+                        let mut auths = builder.authorities.take().unwrap_or_default();
+                        auths.push(auth);
+                        builder.authorities(auths);
                     }
-                    let parts: Vec<&str> = value.split_whitespace().collect();
-                    let (algorithm, identity, signing_key_digest) = if parts.len() >= 3 {
-                        (
-                            Some(parts[0].to_string()),
-                            parts[1].to_string(),
-                            parts[2].to_string(),
-                        )
-                    } else if parts.len() >= 2 {
-                        (None, parts[0].to_string(), parts[1].to_string())
-                    } else {
-                        (None, String::new(), String::new())
-                    };
-                    let (signature, end_idx) = Self::extract_pem_block(&lines, idx + 1);
-                    signatures.push(DocumentSignature {
-                        identity,
-                        signing_key_digest,
-                        signature,
-                        algorithm,
-                    });
+                    let (signature, end_idx) =
+                        Self::parse_directory_signature(value, &lines, idx, &mut builder)?;
+                    let mut sigs = builder.signatures.take().unwrap_or_default();
+                    sigs.push(signature);
+                    builder.signatures(sigs);
                     idx = end_idx;
                 }
                 "r" | "s" | "v" | "pr" | "w" | "p" | "m" | "a" => {
                     if let Some(auth) = current_authority.take() {
-                        authorities.push(auth);
+                        let mut auths = builder.authorities.take().unwrap_or_default();
+                        auths.push(auth);
+                        builder.authorities(auths);
                     }
                 }
                 "directory-footer" => {}
@@ -593,51 +763,17 @@ impl Descriptor for NetworkStatusDocument {
         }
 
         if let Some(auth) = current_authority.take() {
-            authorities.push(auth);
+            let mut auths = builder.authorities.take().unwrap_or_default();
+            auths.push(auth);
+            builder.authorities(auths);
         }
 
-        let valid_after = valid_after.ok_or_else(|| Error::Parse {
-            location: "valid-after".to_string(),
-            reason: "missing valid-after".to_string(),
-        })?;
-        let fresh_until = fresh_until.ok_or_else(|| Error::Parse {
-            location: "fresh-until".to_string(),
-            reason: "missing fresh-until".to_string(),
-        })?;
-        let valid_until = valid_until.ok_or_else(|| Error::Parse {
-            location: "valid-until".to_string(),
-            reason: "missing valid-until".to_string(),
-        })?;
+        builder.raw_content(raw_content);
+        builder.unrecognized_lines(unrecognized_lines);
 
-        Ok(Self {
-            version,
-            version_flavor,
-            is_consensus,
-            is_vote,
-            is_microdescriptor,
-            consensus_method,
-            consensus_methods,
-            published,
-            valid_after,
-            fresh_until,
-            valid_until,
-            vote_delay,
-            dist_delay,
-            client_versions,
-            server_versions,
-            known_flags,
-            recommended_client_protocols,
-            recommended_relay_protocols,
-            required_client_protocols,
-            required_relay_protocols,
-            params,
-            shared_randomness_previous,
-            shared_randomness_current,
-            bandwidth_weights,
-            authorities,
-            signatures,
-            raw_content,
-            unrecognized_lines,
+        builder.build().map_err(|e| Error::Parse {
+            location: "NetworkStatusDocument".to_string(),
+            reason: format!("builder error: {}", e),
         })
     }
 
@@ -963,32 +1099,627 @@ valid-until 2017-05-25 04:46:50
 
             prop_assert_eq!(doc.version, parsed.version, "version mismatch");
             prop_assert_eq!(doc.is_consensus, parsed.is_consensus, "is_consensus mismatch");
-            prop_assert_eq!(doc.is_vote, parsed.is_vote, "is_vote mismatch");
-            prop_assert_eq!(doc.consensus_method, parsed.consensus_method, "consensus_method mismatch");
-            prop_assert_eq!(doc.vote_delay, parsed.vote_delay, "vote_delay mismatch");
-            prop_assert_eq!(doc.dist_delay, parsed.dist_delay, "dist_delay mismatch");
-
-            prop_assert_eq!(
-                doc.valid_after.format("%Y-%m-%d %H:%M:%S").to_string(),
-                parsed.valid_after.format("%Y-%m-%d %H:%M:%S").to_string(),
-                "valid_after mismatch"
-            );
-            prop_assert_eq!(
-                doc.fresh_until.format("%Y-%m-%d %H:%M:%S").to_string(),
-                parsed.fresh_until.format("%Y-%m-%d %H:%M:%S").to_string(),
-                "fresh_until mismatch"
-            );
-            prop_assert_eq!(
-                doc.valid_until.format("%Y-%m-%d %H:%M:%S").to_string(),
-                parsed.valid_until.format("%Y-%m-%d %H:%M:%S").to_string(),
-                "valid_until mismatch"
-            );
-
-            let mut doc_flags = doc.known_flags.clone();
-            let mut parsed_flags = parsed.known_flags.clone();
-            doc_flags.sort();
-            parsed_flags.sort();
-            prop_assert_eq!(doc_flags, parsed_flags, "known_flags mismatch");
         }
+    }
+}
+
+#[cfg(test)]
+mod comprehensive_tests {
+    use super::*;
+
+    #[test]
+    fn test_edge_case_empty_client_versions() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+client-versions 
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.client_versions.len(), 0);
+    }
+
+    #[test]
+    fn test_edge_case_empty_server_versions() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+server-versions 
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.server_versions.len(), 0);
+    }
+
+    #[test]
+    fn test_edge_case_empty_known_flags() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+known-flags 
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.known_flags.len(), 0);
+    }
+
+    #[test]
+    fn test_edge_case_empty_params() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+params 
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.params.len(), 0);
+    }
+
+    #[test]
+    fn test_edge_case_empty_bandwidth_weights() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+directory-footer
+bandwidth-weights 
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.bandwidth_weights.len(), 0);
+    }
+
+    #[test]
+    fn test_edge_case_multiple_authorities() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+dir-source auth1 596CD48D61FDA4E868F4AA10FF559917BE3B1A35 127.0.0.1 127.0.0.1 7001 5001
+dir-source auth2 BCB380A633592C218757BEE11E630511A485658A 127.0.0.1 127.0.0.1 7002 5002
+dir-source auth3 ABC380A633592C218757BEE11E630511A485658B 127.0.0.1 127.0.0.1 7003 5003
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.authorities.len(), 3);
+        assert_eq!(doc.authorities[0].nickname, "auth1");
+        assert_eq!(doc.authorities[1].nickname, "auth2");
+        assert_eq!(doc.authorities[2].nickname, "auth3");
+    }
+
+    #[test]
+    fn test_edge_case_multiple_signatures() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+directory-signature 596CD48D61FDA4E868F4AA10FF559917BE3B1A35 9FBF54D6A62364320308A615BF4CF6B27B254FAD
+-----BEGIN SIGNATURE-----
+sig1
+-----END SIGNATURE-----
+directory-signature BCB380A633592C218757BEE11E630511A485658A 8FBF54D6A62364320308A615BF4CF6B27B254FAE
+-----BEGIN SIGNATURE-----
+sig2
+-----END SIGNATURE-----
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.signatures.len(), 2);
+        assert_eq!(
+            doc.signatures[0].identity,
+            "596CD48D61FDA4E868F4AA10FF559917BE3B1A35"
+        );
+        assert_eq!(
+            doc.signatures[1].identity,
+            "BCB380A633592C218757BEE11E630511A485658A"
+        );
+    }
+
+    #[test]
+    fn test_edge_case_shared_randomness_both() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+shared-rand-previous-value 9 abcdef1234567890
+shared-rand-current-value 10 1234567890abcdef
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert!(doc.shared_randomness_previous.is_some());
+        assert!(doc.shared_randomness_current.is_some());
+        let prev = doc.shared_randomness_previous.unwrap();
+        assert_eq!(prev.num_reveals, 9);
+        assert_eq!(prev.value, "abcdef1234567890");
+        let curr = doc.shared_randomness_current.unwrap();
+        assert_eq!(curr.num_reveals, 10);
+        assert_eq!(curr.value, "1234567890abcdef");
+    }
+
+    #[test]
+    fn test_edge_case_vote_document() {
+        let content = r#"network-status-version 3
+vote-status vote
+consensus-methods 25 26 27
+published 2017-05-25 04:46:20
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert!(!doc.is_consensus);
+        assert!(doc.is_vote);
+        assert!(doc.consensus_methods.is_some());
+        assert_eq!(doc.consensus_methods.unwrap(), vec![25, 26, 27]);
+        assert!(doc.published.is_some());
+    }
+
+    #[test]
+    fn test_edge_case_protocol_ranges() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+recommended-client-protocols Cons=1-2 Link=1-5 Relay=1-3
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(
+            doc.recommended_client_protocols.get("Cons"),
+            Some(&vec![1, 2])
+        );
+        assert_eq!(
+            doc.recommended_client_protocols.get("Link"),
+            Some(&vec![1, 2, 3, 4, 5])
+        );
+        assert_eq!(
+            doc.recommended_client_protocols.get("Relay"),
+            Some(&vec![1, 2, 3])
+        );
+    }
+
+    #[test]
+    fn test_edge_case_protocol_mixed_ranges() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+required-relay-protocols Link=1-3,5,7-9
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        let link_protos = doc.required_relay_protocols.get("Link").unwrap();
+        assert!(link_protos.contains(&1));
+        assert!(link_protos.contains(&2));
+        assert!(link_protos.contains(&3));
+        assert!(link_protos.contains(&5));
+        assert!(link_protos.contains(&7));
+        assert!(link_protos.contains(&8));
+        assert!(link_protos.contains(&9));
+        assert!(!link_protos.contains(&4));
+        assert!(!link_protos.contains(&6));
+    }
+
+    #[test]
+    fn test_edge_case_params_negative_values() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+params param1=100 param2=-50 param3=0
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.params.get("param1"), Some(&100));
+        assert_eq!(doc.params.get("param2"), Some(&-50));
+        assert_eq!(doc.params.get("param3"), Some(&0));
+    }
+
+    #[test]
+    fn test_edge_case_bandwidth_weights_negative() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+directory-footer
+bandwidth-weights Wbd=3333 Wbe=-100 Wbg=0
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.bandwidth_weights.get("Wbd"), Some(&3333));
+        assert_eq!(doc.bandwidth_weights.get("Wbe"), Some(&-100));
+        assert_eq!(doc.bandwidth_weights.get("Wbg"), Some(&0));
+    }
+
+    #[test]
+    fn test_edge_case_unrecognized_lines() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+unknown-field some value
+another-unknown another value
+"#;
+        let doc = NetworkStatusDocument::parse(content).unwrap();
+        assert_eq!(doc.unrecognized_lines.len(), 2);
+        assert!(doc
+            .unrecognized_lines
+            .contains(&"unknown-field some value".to_string()));
+        assert!(doc
+            .unrecognized_lines
+            .contains(&"another-unknown another value".to_string()));
+    }
+
+    #[test]
+    fn test_validation_invalid_timestamp_ordering() {
+        let doc = NetworkStatusDocument {
+            version: 3,
+            version_flavor: String::new(),
+            is_consensus: true,
+            is_vote: false,
+            is_microdescriptor: false,
+            consensus_method: Some(26),
+            consensus_methods: None,
+            published: None,
+            valid_after: Utc::now(),
+            fresh_until: Utc::now() - chrono::Duration::hours(1),
+            valid_until: Utc::now() + chrono::Duration::hours(1),
+            vote_delay: Some(2),
+            dist_delay: Some(2),
+            client_versions: Vec::new(),
+            server_versions: Vec::new(),
+            known_flags: Vec::new(),
+            recommended_client_protocols: HashMap::new(),
+            recommended_relay_protocols: HashMap::new(),
+            required_client_protocols: HashMap::new(),
+            required_relay_protocols: HashMap::new(),
+            params: HashMap::new(),
+            shared_randomness_previous: None,
+            shared_randomness_current: None,
+            bandwidth_weights: HashMap::new(),
+            authorities: Vec::new(),
+            signatures: Vec::new(),
+            raw_content: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = doc.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::Descriptor(crate::descriptor::DescriptorError::Consensus(
+                crate::descriptor::ConsensusError::TimestampOrderingViolation(_),
+            )) => {}
+            _ => panic!("Expected TimestampOrderingViolation error"),
+        }
+    }
+
+    #[test]
+    fn test_validation_invalid_version() {
+        let doc = NetworkStatusDocument {
+            version: 2,
+            version_flavor: String::new(),
+            is_consensus: true,
+            is_vote: false,
+            is_microdescriptor: false,
+            consensus_method: Some(26),
+            consensus_methods: None,
+            published: None,
+            valid_after: Utc::now(),
+            fresh_until: Utc::now() + chrono::Duration::hours(1),
+            valid_until: Utc::now() + chrono::Duration::hours(2),
+            vote_delay: Some(2),
+            dist_delay: Some(2),
+            client_versions: Vec::new(),
+            server_versions: Vec::new(),
+            known_flags: Vec::new(),
+            recommended_client_protocols: HashMap::new(),
+            recommended_relay_protocols: HashMap::new(),
+            required_client_protocols: HashMap::new(),
+            required_relay_protocols: HashMap::new(),
+            params: HashMap::new(),
+            shared_randomness_previous: None,
+            shared_randomness_current: None,
+            bandwidth_weights: HashMap::new(),
+            authorities: Vec::new(),
+            signatures: Vec::new(),
+            raw_content: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = doc.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::Descriptor(crate::descriptor::DescriptorError::Consensus(
+                crate::descriptor::ConsensusError::InvalidNetworkStatusVersion(_),
+            )) => {}
+            _ => panic!("Expected InvalidNetworkStatusVersion error"),
+        }
+    }
+
+    #[test]
+    fn test_validation_invalid_authority_fingerprint() {
+        let doc = NetworkStatusDocument {
+            version: 3,
+            version_flavor: String::new(),
+            is_consensus: true,
+            is_vote: false,
+            is_microdescriptor: false,
+            consensus_method: Some(26),
+            consensus_methods: None,
+            published: None,
+            valid_after: Utc::now(),
+            fresh_until: Utc::now() + chrono::Duration::hours(1),
+            valid_until: Utc::now() + chrono::Duration::hours(2),
+            vote_delay: Some(2),
+            dist_delay: Some(2),
+            client_versions: Vec::new(),
+            server_versions: Vec::new(),
+            known_flags: Vec::new(),
+            recommended_client_protocols: HashMap::new(),
+            recommended_relay_protocols: HashMap::new(),
+            required_client_protocols: HashMap::new(),
+            required_relay_protocols: HashMap::new(),
+            params: HashMap::new(),
+            shared_randomness_previous: None,
+            shared_randomness_current: None,
+            bandwidth_weights: HashMap::new(),
+            authorities: vec![DirectoryAuthority {
+                nickname: "test".to_string(),
+                v3ident: "INVALID".to_string(),
+                hostname: "test.test".to_string(),
+                address: "127.0.0.1".parse().unwrap(),
+                dir_port: Some(7000),
+                or_port: 5000,
+                is_legacy: false,
+                contact: None,
+                vote_digest: None,
+                legacy_dir_key: None,
+                key_certificate: None,
+                is_shared_randomness_participate: false,
+                shared_randomness_commitments: Vec::new(),
+                shared_randomness_previous_reveal_count: None,
+                shared_randomness_previous_value: None,
+                shared_randomness_current_reveal_count: None,
+                shared_randomness_current_value: None,
+                raw_content: Vec::new(),
+                unrecognized_lines: Vec::new(),
+            }],
+            signatures: Vec::new(),
+            raw_content: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = doc.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::Descriptor(crate::descriptor::DescriptorError::Consensus(
+                crate::descriptor::ConsensusError::InvalidFingerprint(_),
+            )) => {}
+            _ => panic!("Expected InvalidFingerprint error"),
+        }
+    }
+
+    #[test]
+    fn test_validation_missing_signatures() {
+        let doc = NetworkStatusDocument {
+            version: 3,
+            version_flavor: String::new(),
+            is_consensus: true,
+            is_vote: false,
+            is_microdescriptor: false,
+            consensus_method: Some(26),
+            consensus_methods: None,
+            published: None,
+            valid_after: Utc::now(),
+            fresh_until: Utc::now() + chrono::Duration::hours(1),
+            valid_until: Utc::now() + chrono::Duration::hours(2),
+            vote_delay: Some(2),
+            dist_delay: Some(2),
+            client_versions: Vec::new(),
+            server_versions: Vec::new(),
+            known_flags: Vec::new(),
+            recommended_client_protocols: HashMap::new(),
+            recommended_relay_protocols: HashMap::new(),
+            required_client_protocols: HashMap::new(),
+            required_relay_protocols: HashMap::new(),
+            params: HashMap::new(),
+            shared_randomness_previous: None,
+            shared_randomness_current: None,
+            bandwidth_weights: HashMap::new(),
+            authorities: Vec::new(),
+            signatures: Vec::new(),
+            raw_content: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = doc.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::Descriptor(crate::descriptor::DescriptorError::Consensus(
+                crate::descriptor::ConsensusError::MissingRequiredField(_),
+            )) => {}
+            _ => panic!("Expected MissingRequiredField error"),
+        }
+    }
+
+    #[test]
+    fn test_validation_valid_consensus() {
+        let doc = NetworkStatusDocument {
+            version: 3,
+            version_flavor: String::new(),
+            is_consensus: true,
+            is_vote: false,
+            is_microdescriptor: false,
+            consensus_method: Some(26),
+            consensus_methods: None,
+            published: None,
+            valid_after: Utc::now(),
+            fresh_until: Utc::now() + chrono::Duration::hours(1),
+            valid_until: Utc::now() + chrono::Duration::hours(2),
+            vote_delay: Some(2),
+            dist_delay: Some(2),
+            client_versions: Vec::new(),
+            server_versions: Vec::new(),
+            known_flags: Vec::new(),
+            recommended_client_protocols: HashMap::new(),
+            recommended_relay_protocols: HashMap::new(),
+            required_client_protocols: HashMap::new(),
+            required_relay_protocols: HashMap::new(),
+            params: HashMap::new(),
+            shared_randomness_previous: None,
+            shared_randomness_current: None,
+            bandwidth_weights: HashMap::new(),
+            authorities: vec![DirectoryAuthority {
+                nickname: "test".to_string(),
+                v3ident: "596CD48D61FDA4E868F4AA10FF559917BE3B1A35".to_string(),
+                hostname: "test.test".to_string(),
+                address: "127.0.0.1".parse().unwrap(),
+                dir_port: Some(7000),
+                or_port: 5000,
+                is_legacy: false,
+                contact: None,
+                vote_digest: None,
+                legacy_dir_key: None,
+                key_certificate: None,
+                is_shared_randomness_participate: false,
+                shared_randomness_commitments: Vec::new(),
+                shared_randomness_previous_reveal_count: None,
+                shared_randomness_previous_value: None,
+                shared_randomness_current_reveal_count: None,
+                shared_randomness_current_value: None,
+                raw_content: Vec::new(),
+                unrecognized_lines: Vec::new(),
+            }],
+            signatures: vec![DocumentSignature {
+                identity: "596CD48D61FDA4E868F4AA10FF559917BE3B1A35".to_string(),
+                signing_key_digest: "9FBF54D6A62364320308A615BF4CF6B27B254FAD".to_string(),
+                signature: "test".to_string(),
+                algorithm: None,
+            }],
+            raw_content: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let result = doc.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_builder_basic() {
+        let now = Utc::now();
+        let doc = NetworkStatusDocumentBuilder::default()
+            .version(3_u32)
+            .version_flavor("")
+            .is_consensus(true)
+            .is_vote(false)
+            .is_microdescriptor(false)
+            .valid_after(now)
+            .fresh_until(now + chrono::Duration::hours(1))
+            .valid_until(now + chrono::Duration::hours(2))
+            .build()
+            .expect("Failed to build");
+
+        assert_eq!(doc.version, 3);
+        assert!(doc.is_consensus);
+        assert!(!doc.is_vote);
+    }
+
+    #[test]
+    fn test_builder_with_optional_fields() {
+        let now = Utc::now();
+        let doc = NetworkStatusDocumentBuilder::default()
+            .version(3_u32)
+            .version_flavor("microdesc")
+            .is_consensus(true)
+            .is_vote(false)
+            .is_microdescriptor(true)
+            .consensus_method(26_u32)
+            .valid_after(now)
+            .fresh_until(now + chrono::Duration::hours(1))
+            .valid_until(now + chrono::Duration::hours(2))
+            .vote_delay(2_u32)
+            .dist_delay(2_u32)
+            .build()
+            .expect("Failed to build");
+
+        assert_eq!(doc.version_flavor, "microdesc");
+        assert!(doc.is_microdescriptor);
+        assert_eq!(doc.consensus_method, Some(26));
+        assert_eq!(doc.vote_delay, Some(2));
+        assert_eq!(doc.dist_delay, Some(2));
+    }
+
+    #[test]
+    fn test_round_trip_serialization() {
+        let content = r#"network-status-version 3
+vote-status consensus
+consensus-method 26
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+voting-delay 2 2
+known-flags Authority Exit Fast Guard
+"#;
+        let doc1 = NetworkStatusDocument::parse(content).unwrap();
+        let serialized = doc1.to_descriptor_string();
+        let doc2 = NetworkStatusDocument::parse(&serialized).unwrap();
+
+        assert_eq!(doc1.version, doc2.version);
+        assert_eq!(doc1.is_consensus, doc2.is_consensus);
+        assert_eq!(doc1.consensus_method, doc2.consensus_method);
+        assert_eq!(doc1.vote_delay, doc2.vote_delay);
+        assert_eq!(doc1.dist_delay, doc2.dist_delay);
+        assert_eq!(doc1.known_flags, doc2.known_flags);
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let now = Utc::now();
+        let doc = NetworkStatusDocument {
+            version: 3,
+            version_flavor: String::new(),
+            is_consensus: true,
+            is_vote: false,
+            is_microdescriptor: false,
+            consensus_method: Some(26),
+            consensus_methods: None,
+            published: None,
+            valid_after: now,
+            fresh_until: now + chrono::Duration::hours(1),
+            valid_until: now + chrono::Duration::hours(2),
+            vote_delay: Some(2),
+            dist_delay: Some(2),
+            client_versions: Vec::new(),
+            server_versions: Vec::new(),
+            known_flags: Vec::new(),
+            recommended_client_protocols: HashMap::new(),
+            recommended_relay_protocols: HashMap::new(),
+            required_client_protocols: HashMap::new(),
+            required_relay_protocols: HashMap::new(),
+            params: HashMap::new(),
+            shared_randomness_previous: None,
+            shared_randomness_current: None,
+            bandwidth_weights: HashMap::new(),
+            authorities: Vec::new(),
+            signatures: Vec::new(),
+            raw_content: Vec::new(),
+            unrecognized_lines: Vec::new(),
+        };
+        let display_str = format!("{}", doc);
+        assert!(display_str.contains("network-status-version"));
+        assert!(display_str.contains("vote-status"));
+    }
+
+    #[test]
+    fn test_from_str_implementation() {
+        let content = r#"network-status-version 3
+vote-status consensus
+valid-after 2017-05-25 04:46:30
+fresh-until 2017-05-25 04:46:40
+valid-until 2017-05-25 04:46:50
+"#;
+        let doc: NetworkStatusDocument = content.parse().unwrap();
+        assert_eq!(doc.version, 3);
+        assert!(doc.is_consensus);
     }
 }

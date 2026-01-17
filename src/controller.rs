@@ -679,6 +679,9 @@ pub struct Controller {
     socket: ControlSocket,
     /// Buffer for asynchronous events received during command execution.
     event_buffer: Vec<ControlMessage>,
+    /// Optional descriptor cache for improved performance.
+    #[cfg(feature = "descriptors")]
+    descriptor_cache: Option<crate::descriptor::DescriptorCache>,
 }
 
 impl Controller {
@@ -723,6 +726,8 @@ impl Controller {
         Ok(Self {
             socket,
             event_buffer: Vec::new(),
+            #[cfg(feature = "descriptors")]
+            descriptor_cache: None,
         })
     }
 
@@ -772,7 +777,129 @@ impl Controller {
         Ok(Self {
             socket,
             event_buffer: Vec::new(),
+            #[cfg(feature = "descriptors")]
+            descriptor_cache: None,
         })
+    }
+
+    /// Enables descriptor caching with default settings.
+    ///
+    /// Caching significantly improves performance by avoiding repeated downloads
+    /// of the same descriptors. The cache uses sensible defaults:
+    /// - Consensus: 3 hours TTL
+    /// - Server descriptors: 24 hours TTL
+    /// - Microdescriptors: 24 hours TTL
+    /// - Max entries: 1000
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// // Enable caching for better performance
+    /// controller.enable_descriptor_cache();
+    ///
+    /// // Subsequent calls will use cached data when available
+    /// let consensus = controller.get_consensus().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub fn enable_descriptor_cache(&mut self) {
+        self.descriptor_cache = Some(crate::descriptor::DescriptorCache::new());
+    }
+
+    /// Enables descriptor caching with a custom cache instance.
+    ///
+    /// Allows fine-grained control over cache behavior including TTLs
+    /// and maximum entry limits.
+    ///
+    /// # Arguments
+    ///
+    /// * `cache` - A configured [`DescriptorCache`](crate::descriptor::DescriptorCache) instance
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    /// use stem_rs::descriptor::DescriptorCache;
+    /// use std::time::Duration;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// // Configure custom cache settings
+    /// let cache = DescriptorCache::new()
+    ///     .with_consensus_ttl(Duration::from_secs(1800))  // 30 minutes
+    ///     .with_max_entries(500);
+    ///
+    /// controller.with_descriptor_cache(cache);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub fn with_descriptor_cache(&mut self, cache: crate::descriptor::DescriptorCache) {
+        self.descriptor_cache = Some(cache);
+    }
+
+    /// Disables descriptor caching.
+    ///
+    /// Clears any cached descriptors and disables future caching.
+    /// All subsequent descriptor requests will fetch fresh data from Tor.
+    #[cfg(feature = "descriptors")]
+    pub fn disable_descriptor_cache(&mut self) {
+        self.descriptor_cache = None;
+    }
+
+    /// Returns cache statistics if caching is enabled.
+    ///
+    /// Provides insight into cache performance including hit rate,
+    /// number of evictions, and expiration counts.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(CacheStats)` if caching is enabled, `None` otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    /// controller.enable_descriptor_cache();
+    ///
+    /// // Make some descriptor requests...
+    /// let _ = controller.get_consensus().await?;
+    ///
+    /// // Check cache performance
+    /// if let Some(stats) = controller.cache_stats() {
+    ///     println!("Cache hit rate: {:.1}%", stats.hit_rate());
+    ///     println!("Hits: {}, Misses: {}", stats.hits, stats.misses);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub fn cache_stats(&self) -> Option<crate::descriptor::CacheStats> {
+        self.descriptor_cache.as_ref().map(|cache| cache.stats())
+    }
+
+    /// Clears all cached descriptors without disabling caching.
+    ///
+    /// Useful for forcing fresh descriptor downloads while keeping
+    /// caching enabled for future requests.
+    #[cfg(feature = "descriptors")]
+    pub fn clear_descriptor_cache(&mut self) {
+        if let Some(cache) = &self.descriptor_cache {
+            cache.clear();
+        }
     }
 
     /// Receives a response, buffering any asynchronous events.
@@ -2131,7 +2258,10 @@ impl Controller {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn remove_ephemeral_hidden_service(&mut self, service_id: &str) -> Result<bool, Error> {
+    pub async fn remove_ephemeral_hidden_service(
+        &mut self,
+        service_id: &str,
+    ) -> Result<bool, Error> {
         let command = format!("DEL_ONION {}", service_id);
         match self.msg(&command).await {
             Ok(_) => Ok(true),
@@ -2653,6 +2783,421 @@ impl Controller {
             write_limit: written_bytes + write_bytes_left,
         })
     }
+
+    /// Retrieves and parses the current network status consensus document.
+    ///
+    /// The consensus document contains the agreed-upon view of the Tor network,
+    /// including information about all known relays, their flags, and bandwidth
+    /// weights. This is the authoritative source for network topology.
+    ///
+    /// # Returns
+    ///
+    /// Returns the parsed [`NetworkStatusDocument`](crate::descriptor::NetworkStatusDocument)
+    /// containing all consensus information.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The GETINFO command fails
+    /// - The consensus document cannot be parsed
+    /// - The connection to Tor is lost
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let consensus = controller.get_consensus().await?;
+    /// println!("Consensus valid from {} to {}",
+    ///          consensus.valid_after, consensus.valid_until);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub async fn get_consensus(
+        &mut self,
+    ) -> Result<crate::descriptor::NetworkStatusDocument, Error> {
+        use crate::descriptor::Descriptor;
+
+        // Check cache first
+        if let Some(cache) = &self.descriptor_cache {
+            if let Some(consensus) = cache.get_consensus() {
+                return Ok(consensus);
+            }
+        }
+
+        // Cache miss - fetch from Tor
+        let consensus_text = self.get_info("dir/status-vote/current/consensus").await?;
+        let consensus = crate::descriptor::NetworkStatusDocument::parse(&consensus_text)?;
+
+        // Store in cache
+        if let Some(cache) = &self.descriptor_cache {
+            cache.put_consensus(consensus.clone());
+        }
+
+        Ok(consensus)
+    }
+
+    /// Retrieves and parses a server descriptor for a specific relay.
+    ///
+    /// Server descriptors contain full relay metadata including identity keys,
+    /// exit policies, bandwidth information, and platform details.
+    ///
+    /// # Arguments
+    ///
+    /// * `fingerprint` - The relay's fingerprint (40 hex characters)
+    ///
+    /// # Returns
+    ///
+    /// Returns the parsed [`ServerDescriptor`](crate::descriptor::ServerDescriptor)
+    /// for the specified relay.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The fingerprint is invalid
+    /// - The descriptor is not available
+    /// - The descriptor cannot be parsed
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let fingerprint = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    /// let descriptor = controller.get_server_descriptor(fingerprint).await?;
+    /// println!("Relay: {} at {}", descriptor.nickname, descriptor.address);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub async fn get_server_descriptor(
+        &mut self,
+        fingerprint: &str,
+    ) -> Result<crate::descriptor::ServerDescriptor, Error> {
+        use crate::descriptor::Descriptor;
+
+        // Check cache first
+        if let Some(cache) = &self.descriptor_cache {
+            if let Some(descriptor) = cache.get_server_descriptor(fingerprint) {
+                return Ok(descriptor);
+            }
+        }
+
+        // Cache miss - fetch from Tor
+        let key = format!("desc/id/{}", fingerprint);
+        let descriptor_text = self.get_info(&key).await?;
+        let descriptor = crate::descriptor::ServerDescriptor::parse(&descriptor_text)?;
+
+        // Store in cache
+        if let Some(cache) = &self.descriptor_cache {
+            cache.put_server_descriptor(fingerprint.to_string(), descriptor.clone());
+        }
+
+        Ok(descriptor)
+    }
+
+    /// Retrieves and parses a microdescriptor for a specific relay.
+    ///
+    /// Microdescriptors are compact descriptors used by clients for building
+    /// circuits with minimal bandwidth overhead. They contain only essential
+    /// routing information.
+    ///
+    /// # Arguments
+    ///
+    /// * `digest` - The microdescriptor digest (base64 or hex encoded)
+    ///
+    /// # Returns
+    ///
+    /// Returns the parsed [`Microdescriptor`](crate::descriptor::Microdescriptor)
+    /// for the specified digest.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The digest is invalid
+    /// - The microdescriptor is not available
+    /// - The microdescriptor cannot be parsed
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let digest = "abcdef1234567890";
+    /// let microdesc = controller.get_microdescriptor(digest).await?;
+    /// println!("Microdescriptor onion key: {}", microdesc.onion_key);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub async fn get_microdescriptor(
+        &mut self,
+        digest: &str,
+    ) -> Result<crate::descriptor::Microdescriptor, Error> {
+        use crate::descriptor::Descriptor;
+
+        // Check cache first
+        if let Some(cache) = &self.descriptor_cache {
+            if let Some(descriptor) = cache.get_microdescriptor(digest) {
+                return Ok(descriptor);
+            }
+        }
+
+        // Cache miss - fetch from Tor
+        let key = format!("md/id/{}", digest);
+        let descriptor_text = self.get_info(&key).await?;
+        let descriptor = crate::descriptor::Microdescriptor::parse(&descriptor_text)?;
+
+        // Store in cache
+        if let Some(cache) = &self.descriptor_cache {
+            cache.put_microdescriptor(digest.to_string(), descriptor.clone());
+        }
+
+        Ok(descriptor)
+    }
+
+    /// Retrieves and parses all router status entries from the network.
+    ///
+    /// Router status entries are compact representations of relays in the
+    /// consensus, containing essential information like nickname, fingerprint,
+    /// flags, and bandwidth.
+    ///
+    /// # Returns
+    ///
+    /// Returns a vector of [`RouterStatusEntry`](crate::descriptor::RouterStatusEntry)
+    /// objects, one for each relay in the network.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The GETINFO command fails
+    /// - The router status entries cannot be parsed
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let entries = controller.get_router_status_entries().await?;
+    /// println!("Found {} relays in the network", entries.len());
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub async fn get_router_status_entries(
+        &mut self,
+    ) -> Result<Vec<crate::descriptor::RouterStatusEntry>, Error> {
+        use crate::descriptor::RouterStatusEntry;
+
+        let ns_text = self.get_info("ns/all").await?;
+
+        let mut entries = Vec::new();
+        let mut current_entry = String::new();
+
+        for line in ns_text.lines() {
+            if line.starts_with("r ") && !current_entry.is_empty() {
+                if let Ok(entry) = RouterStatusEntry::parse(&current_entry) {
+                    entries.push(entry);
+                }
+                current_entry.clear();
+            }
+            current_entry.push_str(line);
+            current_entry.push('\n');
+        }
+
+        if !current_entry.is_empty() {
+            if let Ok(entry) = RouterStatusEntry::parse(&current_entry) {
+                entries.push(entry);
+            }
+        }
+
+        Ok(entries)
+    }
+
+    /// Finds all relays with a specific flag.
+    ///
+    /// Filters the network to return only relays that have been assigned
+    /// the specified flag by directory authorities. Common flags include
+    /// Guard, Exit, Fast, Stable, and Running.
+    ///
+    /// # Arguments
+    ///
+    /// * `flag` - The flag to filter by (e.g., [`Flag::Guard`](crate::Flag::Guard))
+    ///
+    /// # Returns
+    ///
+    /// Returns a vector of [`RouterStatusEntry`](crate::descriptor::RouterStatusEntry)
+    /// objects for relays with the specified flag.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the router status entries cannot be retrieved.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    /// use stem_rs::Flag;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let guard_relays = controller.find_relays_by_flag(Flag::Guard).await?;
+    /// println!("Found {} guard relays", guard_relays.len());
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub async fn find_relays_by_flag(
+        &mut self,
+        flag: crate::Flag,
+    ) -> Result<Vec<crate::descriptor::RouterStatusEntry>, Error> {
+        let entries = self.get_router_status_entries().await?;
+
+        let flag_str = flag.to_string();
+        let matching_relays = entries
+            .into_iter()
+            .filter(|entry| entry.flags.contains(&flag_str))
+            .collect();
+
+        Ok(matching_relays)
+    }
+
+    /// Finds the fastest relays in the network by bandwidth.
+    ///
+    /// Returns the top N relays sorted by consensus bandwidth weight.
+    /// This is useful for selecting high-performance relays for circuits.
+    ///
+    /// # Arguments
+    ///
+    /// * `count` - Maximum number of relays to return
+    ///
+    /// # Returns
+    ///
+    /// Returns a vector of up to `count` [`RouterStatusEntry`](crate::descriptor::RouterStatusEntry)
+    /// objects, sorted by bandwidth (highest first).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the router status entries cannot be retrieved.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// let fastest = controller.find_fastest_relays(10).await?;
+    /// for (i, relay) in fastest.iter().enumerate() {
+    ///     println!("#{}: {} - {} KB/s",
+    ///              i + 1, relay.nickname, relay.bandwidth.unwrap_or(0));
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub async fn find_fastest_relays(
+        &mut self,
+        count: usize,
+    ) -> Result<Vec<crate::descriptor::RouterStatusEntry>, Error> {
+        let mut entries = self.get_router_status_entries().await?;
+
+        entries.sort_by(|a, b| {
+            let a_bw = a.bandwidth.unwrap_or(0);
+            let b_bw = b.bandwidth.unwrap_or(0);
+            b_bw.cmp(&a_bw)
+        });
+
+        entries.truncate(count);
+        Ok(entries)
+    }
+
+    /// Selects a guard relay using bandwidth-weighted random selection.
+    ///
+    /// Implements the Tor path selection algorithm for choosing guard relays.
+    /// Relays with higher bandwidth have proportionally higher probability
+    /// of being selected. This mimics how Tor clients select guards.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(RouterStatusEntry)` if a guard relay was selected,
+    /// or `None` if no guard relays are available.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The router status entries cannot be retrieved
+    /// - Random number generation fails
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use stem_rs::controller::Controller;
+    ///
+    /// # async fn example() -> Result<(), stem_rs::Error> {
+    /// let mut controller = Controller::from_port("127.0.0.1:9051".parse()?).await?;
+    /// controller.authenticate(None).await?;
+    ///
+    /// if let Some(guard) = controller.select_guard_relay().await? {
+    ///     println!("Selected guard: {} ({})", guard.nickname, guard.fingerprint);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "descriptors")]
+    pub async fn select_guard_relay(
+        &mut self,
+    ) -> Result<Option<crate::descriptor::RouterStatusEntry>, Error> {
+        use crate::Flag;
+
+        let guard_relays = self.find_relays_by_flag(Flag::Guard).await?;
+
+        if guard_relays.is_empty() {
+            return Ok(None);
+        }
+
+        let total_bandwidth: u64 = guard_relays.iter().map(|r| r.bandwidth.unwrap_or(0)).sum();
+
+        if total_bandwidth == 0 {
+            return Ok(guard_relays.into_iter().next());
+        }
+
+        let mut random_bytes = [0u8; 8];
+        getrandom::fill(&mut random_bytes)
+            .map_err(|e| Error::Protocol(format!("Random generation failed: {}", e)))?;
+        let random_value = u64::from_le_bytes(random_bytes) % total_bandwidth;
+
+        let mut cumulative = 0u64;
+        for relay in guard_relays {
+            cumulative += relay.bandwidth.unwrap_or(0);
+            if cumulative > random_value {
+                return Ok(Some(relay));
+            }
+        }
+
+        Ok(None)
+    }
 }
 
 /// Response from ADD_ONION command.
@@ -2938,8 +3483,10 @@ fn parse_protocolinfo(content: &str) -> Result<ProtocolInfo, Error> {
                 if let Some(cookie_start) = remaining.find("COOKIEFILE=\"") {
                     let cookie_path_start = cookie_start + 12;
                     if let Some(cookie_end) = remaining[cookie_path_start..].find('"') {
-                        cookie_file =
-                            Some(remaining[cookie_path_start..cookie_path_start + cookie_end].to_string());
+                        cookie_file = Some(
+                            remaining[cookie_path_start..cookie_path_start + cookie_end]
+                                .to_string(),
+                        );
                     }
                 }
             } else {
@@ -2990,46 +3537,15 @@ fn parse_accounting_bytes(bytes_str: &str) -> Result<(u64, u64), Error> {
 /// Parses interval end timestamp and calculates seconds until reset.
 fn parse_interval_end_to_seconds(interval_end: &str, current_time: f64) -> Option<u64> {
     // interval_end format: "YYYY-MM-DD HH:MM:SS"
-    // This is a simplified parser - in production you'd use chrono
-    let parts: Vec<&str> = interval_end.split_whitespace().collect();
-    if parts.len() != 2 {
-        return None;
-    }
-
-    let date_parts: Vec<&str> = parts[0].split('-').collect();
-    let time_parts: Vec<&str> = parts[1].split(':').collect();
-
-    if date_parts.len() != 3 || time_parts.len() != 3 {
-        return None;
-    }
-
-    let year: i32 = date_parts[0].parse().ok()?;
-    let month: u32 = date_parts[1].parse().ok()?;
-    let day: u32 = date_parts[2].parse().ok()?;
-    let hour: u32 = time_parts[0].parse().ok()?;
-    let minute: u32 = time_parts[1].parse().ok()?;
-    let second: u32 = time_parts[2].parse().ok()?;
-
-    // Simple calculation - days since epoch approximation
-    // This is a rough estimate; for production use chrono crate
-    let days_since_epoch = (year - 1970) * 365 + (year - 1969) / 4 + day_of_year(month, day) as i32;
-    let end_timestamp =
-        days_since_epoch as f64 * 86400.0 + hour as f64 * 3600.0 + minute as f64 * 60.0 + second as f64;
+    use chrono::NaiveDateTime;
+    
+    let naive_dt = NaiveDateTime::parse_from_str(interval_end, "%Y-%m-%d %H:%M:%S").ok()?;
+    let end_timestamp = naive_dt.and_utc().timestamp() as f64;
 
     if end_timestamp > current_time {
         Some((end_timestamp - current_time) as u64)
     } else {
         Some(0)
-    }
-}
-
-/// Helper to calculate day of year (approximate).
-fn day_of_year(month: u32, day: u32) -> u32 {
-    let days_before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    if (1..=12).contains(&month) {
-        days_before_month[(month - 1) as usize] + day
-    } else {
-        day
     }
 }
 
@@ -3443,7 +3959,10 @@ mod stem_tests {
     fn test_parse_add_onion_response_v3() {
         let content = "ServiceID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nPrivateKey=ED25519-V3:base64keydata==";
         let response = parse_add_onion_response(content).unwrap();
-        assert_eq!(response.service_id, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        assert_eq!(
+            response.service_id,
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        );
         assert_eq!(response.private_key_type, Some("ED25519-V3".to_string()));
         assert_eq!(response.private_key, Some("base64keydata==".to_string()));
     }
@@ -3452,7 +3971,10 @@ mod stem_tests {
     fn test_parse_add_onion_response_discarded_key() {
         let content = "ServiceID=abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuv";
         let response = parse_add_onion_response(content).unwrap();
-        assert_eq!(response.service_id, "abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuv");
+        assert_eq!(
+            response.service_id,
+            "abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuv"
+        );
         assert!(response.private_key.is_none());
         assert!(response.private_key_type.is_none());
     }

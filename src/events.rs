@@ -1761,28 +1761,25 @@ impl CircuitBandwidthEvent {
                 );
             } else if line.is_next_mapping(Some("DELIVERED_READ"), false) {
                 let (_, v) = line.pop_mapping(false, false)?;
-                delivered_read = Some(
-                    v.parse()
-                        .map_err(|_| Error::Protocol(format!("invalid DELIVERED_READ value: {}", v)))?,
-                );
+                delivered_read = Some(v.parse().map_err(|_| {
+                    Error::Protocol(format!("invalid DELIVERED_READ value: {}", v))
+                })?);
             } else if line.is_next_mapping(Some("DELIVERED_WRITTEN"), false) {
                 let (_, v) = line.pop_mapping(false, false)?;
-                delivered_written = Some(
-                    v.parse()
-                        .map_err(|_| Error::Protocol(format!("invalid DELIVERED_WRITTEN value: {}", v)))?,
-                );
+                delivered_written = Some(v.parse().map_err(|_| {
+                    Error::Protocol(format!("invalid DELIVERED_WRITTEN value: {}", v))
+                })?);
             } else if line.is_next_mapping(Some("OVERHEAD_READ"), false) {
                 let (_, v) = line.pop_mapping(false, false)?;
-                overhead_read = Some(
-                    v.parse()
-                        .map_err(|_| Error::Protocol(format!("invalid OVERHEAD_READ value: {}", v)))?,
-                );
+                overhead_read =
+                    Some(v.parse().map_err(|_| {
+                        Error::Protocol(format!("invalid OVERHEAD_READ value: {}", v))
+                    })?);
             } else if line.is_next_mapping(Some("OVERHEAD_WRITTEN"), false) {
                 let (_, v) = line.pop_mapping(false, false)?;
-                overhead_written = Some(
-                    v.parse()
-                        .map_err(|_| Error::Protocol(format!("invalid OVERHEAD_WRITTEN value: {}", v)))?,
-                );
+                overhead_written = Some(v.parse().map_err(|_| {
+                    Error::Protocol(format!("invalid OVERHEAD_WRITTEN value: {}", v))
+                })?);
             } else if line.is_next_mapping(Some("TIME"), false) {
                 let (_, v) = line.pop_mapping(false, false)?;
                 time = parse_iso_timestamp(&v).ok();

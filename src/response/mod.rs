@@ -72,6 +72,7 @@
 
 pub mod add_onion;
 pub mod authchallenge;
+#[cfg(feature = "events")]
 pub mod events;
 pub mod getconf;
 pub mod getinfo;

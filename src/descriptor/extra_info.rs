@@ -94,6 +94,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use derive_builder::Builder;
 
 use crate::Error;
 
@@ -421,7 +422,8 @@ pub struct Transport {
 /// - [`BandwidthHistory`] - Bandwidth history data structure
 /// - [`DirResponse`] - Directory response status codes
 /// - [`DirStat`] - Directory download statistics
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Builder)]
+#[builder(setter(into, strip_option))]
 pub struct ExtraInfoDescriptor {
     /// The relay's nickname (1-19 alphanumeric characters).
     pub nickname: String,
@@ -435,9 +437,11 @@ pub struct ExtraInfoDescriptor {
     pub published: DateTime<Utc>,
 
     /// SHA-1 digest of the GeoIP database for IPv4 addresses.
+    #[builder(default)]
     pub geoip_db_digest: Option<String>,
 
     /// SHA-1 digest of the GeoIP database for IPv6 addresses.
+    #[builder(default)]
     pub geoip6_db_digest: Option<String>,
 
     /// Pluggable transports available on this relay (bridges only).
@@ -446,39 +450,51 @@ pub struct ExtraInfoDescriptor {
     pub transports: HashMap<String, Transport>,
 
     /// Bytes read by the relay over time.
+    #[builder(default)]
     pub read_history: Option<BandwidthHistory>,
 
     /// Bytes written by the relay over time.
+    #[builder(default)]
     pub write_history: Option<BandwidthHistory>,
 
     /// Bytes read for directory requests over time.
+    #[builder(default)]
     pub dir_read_history: Option<BandwidthHistory>,
 
     /// Bytes written for directory requests over time.
+    #[builder(default)]
     pub dir_write_history: Option<BandwidthHistory>,
 
     /// End time for bi-directional connection statistics.
+    #[builder(default)]
     pub conn_bi_direct_end: Option<DateTime<Utc>>,
 
     /// Interval for bi-directional connection statistics (seconds).
+    #[builder(default)]
     pub conn_bi_direct_interval: Option<u32>,
 
     /// Connections that read/wrote less than 20 KiB.
+    #[builder(default)]
     pub conn_bi_direct_below: Option<u32>,
 
     /// Connections that read at least 10x more than wrote.
+    #[builder(default)]
     pub conn_bi_direct_read: Option<u32>,
 
     /// Connections that wrote at least 10x more than read.
+    #[builder(default)]
     pub conn_bi_direct_write: Option<u32>,
 
     /// Connections with balanced read/write (remaining).
+    #[builder(default)]
     pub conn_bi_direct_both: Option<u32>,
 
     /// End time for cell statistics collection.
+    #[builder(default)]
     pub cell_stats_end: Option<DateTime<Utc>>,
 
     /// Interval for cell statistics (seconds).
+    #[builder(default)]
     pub cell_stats_interval: Option<u32>,
 
     /// Mean processed cells per circuit, by decile.
@@ -491,12 +507,15 @@ pub struct ExtraInfoDescriptor {
     pub cell_time_in_queue: Vec<f64>,
 
     /// Mean number of circuits in a decile.
+    #[builder(default)]
     pub cell_circuits_per_decile: Option<u32>,
 
     /// End time for directory statistics collection.
+    #[builder(default)]
     pub dir_stats_end: Option<DateTime<Utc>>,
 
     /// Interval for directory statistics (seconds).
+    #[builder(default)]
     pub dir_stats_interval: Option<u32>,
 
     /// V3 directory request client IPs by country code.
@@ -548,18 +567,22 @@ pub struct ExtraInfoDescriptor {
     pub dir_v2_tunneled_dl_unknown: HashMap<String, u32>,
 
     /// End time for entry guard statistics.
+    #[builder(default)]
     pub entry_stats_end: Option<DateTime<Utc>>,
 
     /// Interval for entry guard statistics (seconds).
+    #[builder(default)]
     pub entry_stats_interval: Option<u32>,
 
     /// Entry guard client IPs by country code.
     pub entry_ips: HashMap<String, u32>,
 
     /// End time for exit statistics.
+    #[builder(default)]
     pub exit_stats_end: Option<DateTime<Utc>>,
 
     /// Interval for exit statistics (seconds).
+    #[builder(default)]
     pub exit_stats_interval: Option<u32>,
 
     /// Kibibytes written per destination port.
@@ -572,9 +595,11 @@ pub struct ExtraInfoDescriptor {
     pub exit_streams_opened: HashMap<PortKey, u64>,
 
     /// End time for bridge statistics.
+    #[builder(default)]
     pub bridge_stats_end: Option<DateTime<Utc>>,
 
     /// Interval for bridge statistics (seconds).
+    #[builder(default)]
     pub bridge_stats_interval: Option<u32>,
 
     /// Bridge client IPs by country code.
@@ -587,44 +612,54 @@ pub struct ExtraInfoDescriptor {
     pub ip_transports: HashMap<String, u32>,
 
     /// End time for hidden service statistics.
+    #[builder(default)]
     pub hs_stats_end: Option<DateTime<Utc>>,
 
     /// Rounded count of RENDEZVOUS1 cells relayed.
+    #[builder(default)]
     pub hs_rend_cells: Option<u64>,
 
     /// Additional attributes for hs_rend_cells.
     pub hs_rend_cells_attr: HashMap<String, String>,
 
     /// Rounded count of unique onion service identities seen.
+    #[builder(default)]
     pub hs_dir_onions_seen: Option<u64>,
 
     /// Additional attributes for hs_dir_onions_seen.
     pub hs_dir_onions_seen_attr: HashMap<String, String>,
 
     /// End time for padding count statistics.
+    #[builder(default)]
     pub padding_counts_end: Option<DateTime<Utc>>,
 
     /// Interval for padding count statistics (seconds).
+    #[builder(default)]
     pub padding_counts_interval: Option<u32>,
 
     /// Padding-related statistics.
     pub padding_counts: HashMap<String, String>,
 
     /// Ed25519 certificate (PEM-encoded).
+    #[builder(default)]
     pub ed25519_certificate: Option<String>,
 
     /// Ed25519 signature of the descriptor.
+    #[builder(default)]
     pub ed25519_signature: Option<String>,
 
     /// RSA signature of the descriptor (relay extra-info only).
+    #[builder(default)]
     pub signature: Option<String>,
 
     /// Router digest for bridge extra-info descriptors.
     ///
     /// Present only in bridge descriptors; indicates this is a bridge.
+    #[builder(default)]
     pub router_digest: Option<String>,
 
     /// SHA-256 router digest (base64).
+    #[builder(default)]
     pub router_digest_sha256: Option<String>,
 
     /// Raw descriptor content for digest computation.
@@ -1889,5 +1924,297 @@ cell-time-in-queue 10.5,20.5,30.5
         assert_eq!(desc.cell_processed_cells, vec![2.3, -4.6, 8.9]);
         assert_eq!(desc.cell_queued_cells, vec![1.0, 2.0, 3.0]);
         assert_eq!(desc.cell_time_in_queue, vec![10.5, 20.5, 30.5]);
+    }
+
+    #[test]
+    fn test_empty_history_values() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+write-history 2012-05-05 17:02:45 (900 s) 
+read-history 2012-05-05 17:02:45 (900 s)
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert!(desc.write_history.is_some());
+        assert!(desc.read_history.is_some());
+        assert_eq!(desc.write_history.as_ref().unwrap().values.len(), 0);
+        assert_eq!(desc.read_history.as_ref().unwrap().values.len(), 0);
+    }
+
+    #[test]
+    fn test_empty_geoip_counts() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+dirreq-stats-end 2012-05-03 12:07:50 (86400 s)
+dirreq-v3-ips 
+dirreq-v3-reqs 
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert!(desc.dir_stats_end.is_some());
+        assert_eq!(desc.dir_v3_ips.len(), 0);
+        assert_eq!(desc.dir_v3_requests.len(), 0);
+    }
+
+    #[test]
+    fn test_negative_bandwidth_values() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+write-history 2012-05-05 17:02:45 (900 s) -100,200,-300,400
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        let history = desc.write_history.as_ref().unwrap();
+        assert_eq!(history.values, vec![-100, 200, -300, 400]);
+    }
+
+    #[test]
+    fn test_large_bandwidth_values() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+write-history 2012-05-05 17:02:45 (900 s) 9223372036854775807,1000000000000
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        let history = desc.write_history.as_ref().unwrap();
+        assert_eq!(history.values.len(), 2);
+        assert_eq!(history.values[0], 9223372036854775807);
+        assert_eq!(history.values[1], 1000000000000);
+    }
+
+    #[test]
+    fn test_unrecognized_lines_captured() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+unknown-keyword some value here
+another-unknown-line with data
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.unrecognized_lines.len(), 2);
+        assert!(desc
+            .unrecognized_lines
+            .contains(&"unknown-keyword some value here".to_string()));
+        assert!(desc
+            .unrecognized_lines
+            .contains(&"another-unknown-line with data".to_string()));
+    }
+
+    #[test]
+    fn test_round_trip_serialization() {
+        let desc = ExtraInfoDescriptor::parse(RELAY_EXTRA_INFO).unwrap();
+        let serialized = desc.to_descriptor_string();
+        let reparsed = ExtraInfoDescriptor::parse(&serialized).unwrap();
+
+        assert_eq!(desc.nickname, reparsed.nickname);
+        assert_eq!(desc.fingerprint, reparsed.fingerprint);
+        assert_eq!(
+            desc.published.format("%Y-%m-%d %H:%M:%S").to_string(),
+            reparsed.published.format("%Y-%m-%d %H:%M:%S").to_string()
+        );
+
+        if let (Some(ref orig), Some(ref new)) = (&desc.write_history, &reparsed.write_history) {
+            assert_eq!(orig.interval, new.interval);
+            assert_eq!(orig.values, new.values);
+        }
+
+        if let (Some(ref orig), Some(ref new)) = (&desc.read_history, &reparsed.read_history) {
+            assert_eq!(orig.interval, new.interval);
+            assert_eq!(orig.values, new.values);
+        }
+    }
+
+    #[test]
+    fn test_transport_with_ipv6_address() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+transport obfs4 [2001:db8::1]:9001 cert=abc123
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert!(desc.transports.contains_key("obfs4"));
+        let transport = desc.transports.get("obfs4").unwrap();
+        assert_eq!(transport.address, Some("2001:db8::1".to_string()));
+        assert_eq!(transport.port, Some(9001));
+        assert_eq!(transport.args, vec!["cert=abc123".to_string()]);
+    }
+
+    #[test]
+    fn test_transport_without_address() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+transport snowflake
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert!(desc.transports.contains_key("snowflake"));
+        let transport = desc.transports.get("snowflake").unwrap();
+        assert_eq!(transport.address, None);
+        assert_eq!(transport.port, None);
+        assert_eq!(transport.args.len(), 0);
+    }
+
+    #[test]
+    fn test_multiple_transports() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+transport obfs2 192.168.1.1:9001
+transport obfs3 192.168.1.1:9002
+transport obfs4 192.168.1.1:9003 cert=xyz
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.transports.len(), 3);
+        assert!(desc.transports.contains_key("obfs2"));
+        assert!(desc.transports.contains_key("obfs3"));
+        assert!(desc.transports.contains_key("obfs4"));
+    }
+
+    #[test]
+    fn test_dirreq_response_with_unknown_status() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+dirreq-stats-end 2012-05-03 12:07:50 (86400 s)
+dirreq-v3-resp ok=100,unknown-status=50,busy=25
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.dir_v3_responses.get(&DirResponse::Ok), Some(&100));
+        assert_eq!(desc.dir_v3_responses.get(&DirResponse::Busy), Some(&25));
+        assert_eq!(
+            desc.dir_v3_responses_unknown.get("unknown-status"),
+            Some(&50)
+        );
+    }
+
+    #[test]
+    fn test_dirreq_dl_with_unknown_stat() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+dirreq-stats-end 2012-05-03 12:07:50 (86400 s)
+dirreq-v3-direct-dl complete=100,unknown-stat=50,timeout=25
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.dir_v3_direct_dl.get(&DirStat::Complete), Some(&100));
+        assert_eq!(desc.dir_v3_direct_dl.get(&DirStat::Timeout), Some(&25));
+        assert_eq!(desc.dir_v3_direct_dl_unknown.get("unknown-stat"), Some(&50));
+    }
+
+    #[test]
+    fn test_hidden_service_stats_without_attributes() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+hidserv-stats-end 2012-05-03 12:07:50
+hidserv-rend-relayed-cells 12345
+hidserv-dir-onions-seen 678
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.hs_rend_cells, Some(12345));
+        assert_eq!(desc.hs_rend_cells_attr.len(), 0);
+        assert_eq!(desc.hs_dir_onions_seen, Some(678));
+        assert_eq!(desc.hs_dir_onions_seen_attr.len(), 0);
+    }
+
+    #[test]
+    fn test_padding_counts_multiple_attributes() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+padding-counts 2017-05-17 11:02:58 (86400 s) bin-size=10000 write-drop=0 write-pad=10000 write-total=20000 read-drop=5 read-pad=15000 read-total=25000
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.padding_counts.len(), 7);
+        assert_eq!(
+            desc.padding_counts.get("bin-size"),
+            Some(&"10000".to_string())
+        );
+        assert_eq!(
+            desc.padding_counts.get("write-total"),
+            Some(&"20000".to_string())
+        );
+        assert_eq!(
+            desc.padding_counts.get("read-total"),
+            Some(&"25000".to_string())
+        );
+    }
+
+    #[test]
+    fn test_minimal_valid_descriptor() {
+        let content = r#"extra-info minimal B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.nickname, "minimal");
+        assert_eq!(desc.fingerprint, "B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48");
+        assert!(!desc.is_bridge());
+        assert_eq!(desc.transports.len(), 0);
+        assert_eq!(desc.unrecognized_lines.len(), 0);
+    }
+
+    #[test]
+    fn test_type_annotation_ignored() {
+        let content = r#"@type extra-info 1.0
+@type bridge-extra-info 1.1
+extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.nickname, "test");
+        assert_eq!(desc.unrecognized_lines.len(), 0);
+    }
+
+    #[test]
+    fn test_port_key_display() {
+        assert_eq!(format!("{}", PortKey::Port(80)), "80");
+        assert_eq!(format!("{}", PortKey::Port(443)), "443");
+        assert_eq!(format!("{}", PortKey::Other), "other");
+    }
+
+    #[test]
+    fn test_bandwidth_history_with_single_value() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+write-history 2012-05-05 17:02:45 (900 s) 1234567890
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        let history = desc.write_history.as_ref().unwrap();
+        assert_eq!(history.values.len(), 1);
+        assert_eq!(history.values[0], 1234567890);
+    }
+
+    #[test]
+    fn test_conn_bi_direct_with_zeros() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+conn-bi-direct 2012-05-03 12:07:50 (500 s) 0,0,0,0
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.conn_bi_direct_below, Some(0));
+        assert_eq!(desc.conn_bi_direct_read, Some(0));
+        assert_eq!(desc.conn_bi_direct_write, Some(0));
+        assert_eq!(desc.conn_bi_direct_both, Some(0));
+    }
+
+    #[test]
+    fn test_exit_stats_with_only_other_port() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+exit-stats-end 2012-05-03 12:07:50 (86400 s)
+exit-kibibytes-written other=1000000
+exit-kibibytes-read other=500000
+exit-streams-opened other=1000
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(
+            desc.exit_kibibytes_written.get(&PortKey::Other),
+            Some(&1000000)
+        );
+        assert_eq!(desc.exit_kibibytes_read.get(&PortKey::Other), Some(&500000));
+        assert_eq!(desc.exit_streams_opened.get(&PortKey::Other), Some(&1000));
+        assert_eq!(desc.exit_kibibytes_written.len(), 1);
+    }
+
+    #[test]
+    fn test_geoip_with_special_country_codes() {
+        let content = r#"extra-info test B2289C3EAB83ECD6EB916A2F481A02E6B76A0A48
+published 2012-05-05 17:03:50
+bridge-stats-end 2012-05-03 12:07:50 (86400 s)
+bridge-ips ??=100,a1=50,zz=25
+router-digest 00A2AECCEAD3FEE033CFE29893387143146728EC
+"#;
+        let desc = ExtraInfoDescriptor::parse(content).unwrap();
+        assert_eq!(desc.bridge_ips.get("??"), Some(&100));
+        assert_eq!(desc.bridge_ips.get("a1"), Some(&50));
+        assert_eq!(desc.bridge_ips.get("zz"), Some(&25));
     }
 }
